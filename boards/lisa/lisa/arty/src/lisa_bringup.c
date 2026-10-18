@@ -25,7 +25,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <sys/mount.h>
+#include <debug.h>
 #include <nuttx/board.h>
+#include <nuttx/fs/fs.h>
 
 #include "lisa_internal.h"
 
@@ -38,12 +41,20 @@
  *
  * Description:
  *   Called after up_initialize() and the board's early initialization: the
- *   place for the board's device drivers.  Nothing beyond the console yet.
+ *   place for the board's device drivers.  Mounts procfs (nsh's ps and free
+ *   read it; without boardctl nothing else would).
  *
  ****************************************************************************/
 
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)
 {
+#ifdef CONFIG_FS_PROCFS
+  int ret = nx_mount(NULL, "/proc", "procfs", 0, NULL);
+  if (ret < 0)
+    {
+      serr("ERROR: Failed to mount procfs at /proc: %d\n", ret);
+    }
+#endif
 }
 #endif
