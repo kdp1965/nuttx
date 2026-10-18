@@ -7,3 +7,4 @@ Make.dep
 .depend
 asm_mem.h
 nuttx.lnk
+nuttx.cdb
