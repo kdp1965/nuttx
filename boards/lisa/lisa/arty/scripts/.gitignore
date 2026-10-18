@@ -1,0 +1,2 @@
+# the code bank map of the port (the tree ignores *.map: the linker maps)
+!banks.map

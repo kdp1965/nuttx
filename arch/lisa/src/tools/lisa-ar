@@ -1,0 +1,28 @@
+#!/bin/sh
+# arch/lisa/src/tools/lisa-ar - the archiver of the NuttX LISA port
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# sdcc-lisa builds no sdar: its linker, sdldlisa, also takes a library that
+# is a plain list of object files, one path per line.  This makes one from
+# the objects it is given (ar rcs semantics: add or replace), with absolute
+# paths so that the library can be moved to staging/.
+#
+# Usage: lisa-ar <library> <object>...
+
+lib="$1"
+shift
+tmp="$lib.tmp.$$"
+if [ -f "$lib" ]; then
+  cp "$lib" "$tmp"
+else
+  : > "$tmp"
+fi
+for o in "$@"; do
+  case "$o" in
+    /*) p="$o" ;;
+    *)  p="$(cd "$(dirname "$o")" && pwd -P)/$(basename "$o")" ;;
+  esac
+  echo "$p" >> "$tmp"
+done
+sort -u "$tmp" > "$lib" && rm -f "$tmp"

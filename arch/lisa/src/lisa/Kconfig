@@ -1,0 +1,24 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_CHIP_LISA
+
+choice
+	prompt "Toolchain Selection"
+	default LISA_TOOLCHAIN_SDCC
+
+config LISA_TOOLCHAIN_SDCC
+	bool "sdcc -mlisa (lisa-tools/sdcc-lisa)"
+
+endchoice
+
+config LISA_SDCC_PATH
+	string "sdcc build directory"
+	default "../lisa-tools/sdcc-lisa/build"
+	---help---
+		The build directory of sdcc-lisa (bin/sdcc, share/sdcc/lib/lisa-rev2),
+		relative to the NuttX top directory unless absolute.
+
+endif

@@ -1,0 +1,60 @@
+#!/bin/sh
+# arch/lisa/src/tools/lisa-sdcc - sdcc with the code bank of the source
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# NuttX for LISA is built in sdcc's huge model (every function a banked
+# call) with each source placed in a code bank of the second chip by
+# --codeseg BANKn.  The bank comes from the bank map $LISA_BANK_MAP (the
+# board's scripts/banks.map): lines "<path substring> <bank>", the first
+# substring found in the source's real path wins; bank 0 or no match = the
+# common area below word 0x4000 (where the vectors, the interrupt entry and
+# the context switch must be).  Everything else goes to $LISA_SDCC (sdcc).
+#
+# mkdeps asks for the dependencies with -M -MT <object>; sdcc's -M names
+# the object .o whatever -MT says, so the target is rewritten here.
+
+src=
+compiling=
+mt=
+want_mt=
+n=$#
+i=0
+while [ $i -lt $n ]; do
+  a=$1
+  shift
+  i=$((i+1))
+  if [ -n "$want_mt" ]; then
+    mt=$a
+    want_mt=
+    continue
+  fi
+  case "$a" in
+    -MT) want_mt=1; continue ;;
+    -c) compiling=1 ;;
+    *.c) src="$a" ;;
+  esac
+  set -- "$@" "$a"
+done
+
+seg=
+if [ -n "$compiling" ] && [ -n "$src" ] && [ -n "$LISA_BANK_MAP" ] && [ -f "$LISA_BANK_MAP" ]; then
+  dir=$(cd "$(dirname "$src")" 2>/dev/null && pwd -P)
+  abs="$dir/$(basename "$src")"
+  while read -r pat bank rest; do
+    case "$pat" in ''|'#'*) continue ;; esac
+    case "$abs" in
+      *"$pat"*)
+        if [ "$bank" -gt 0 ] 2>/dev/null; then
+          seg="--codeseg BANK$bank"
+        fi
+        break ;;
+    esac
+  done < "$LISA_BANK_MAP"
+fi
+
+if [ -n "$mt" ]; then
+  "${LISA_SDCC:-sdcc}" "$@" $seg | sed "1s|^[^:]*:|$mt:|"
+  exit $?
+fi
+exec "${LISA_SDCC:-sdcc}" "$@" $seg

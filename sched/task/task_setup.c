@@ -400,7 +400,7 @@ static inline void nxtask_dup_dspace(FAR struct tcb_s *tcb)
  ****************************************************************************/
 
 static int nxthread_setup_scheduler(FAR struct tcb_s *tcb, int priority,
-                                    start_t start, CODE void *entry,
+                                    start_t start, entry_t entry,
                                     uint8_t ttype)
 {
   FAR struct tcb_s *rtcb = this_task();
@@ -420,7 +420,7 @@ static int nxthread_setup_scheduler(FAR struct tcb_s *tcb, int priority,
       tcb->base_priority  = (uint8_t)priority;
 #endif
       tcb->start          = start;
-      tcb->entry.main     = (main_t)entry;
+      tcb->entry          = entry;
 
       /* Save the thread type.  This setting will be needed in
        * up_initial_state() is called.
@@ -680,7 +680,15 @@ int nxtask_setup_scheduler(FAR struct tcb_s *tcb, int priority,
 {
   /* Perform common thread setup */
 
-  return nxthread_setup_scheduler(tcb, priority, start, main, ttype);
+  entry_t entry;
+
+  /* The entry point travels as the union, not as a data pointer: on a
+   * target whose function pointers are wider than its data pointers (the
+   * code bank of sdcc -mlisa) a cast through void * would lose a byte.
+   */
+
+  entry.main = main;
+  return nxthread_setup_scheduler(tcb, priority, start, entry, ttype);
 }
 
 /****************************************************************************
@@ -713,7 +721,10 @@ int pthread_setup_scheduler(FAR struct tcb_s *tcb, int priority,
 {
   /* Perform common thread setup */
 
-  return nxthread_setup_scheduler(tcb, priority, start, entry,
+  entry_t e;
+
+  e.pthread = entry;
+  return nxthread_setup_scheduler(tcb, priority, start, e,
                                   TCB_FLAG_TTYPE_PTHREAD);
 }
 #endif

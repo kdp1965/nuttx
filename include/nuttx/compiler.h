@@ -776,7 +776,8 @@
  * external RAM.
  */
 
-#  if defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_gbz80)
+#  if defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_gbz80) || \
+      defined(__SDCC_lisa)
 #    define FAR
 #    define NEAR
 #    define CODE
@@ -805,7 +806,7 @@
  * the same size as int than just z80 and z180.
  */
 
-#  if !defined(__z80) && !defined(__gbz80)
+#  if !defined(__z80) && !defined(__gbz80) && !defined(__SDCC_lisa)
 #    define CONFIG_PTR_IS_NOT_INT 1
 #  endif
 

@@ -3433,6 +3433,15 @@ config ARCH_BOARD_Z80SIM
 		called z80sim.  This port also uses the SDCC toolchain
 		(http://sdcc.sourceforge.net/") (verified with version 2.6.0).
 
+config ARCH_BOARD_LISA_ARTY
+	bool "LISA on the Digilent Arty A7"
+	depends on ARCH_CHIP_LISA
+	select UART_SERIALDRIVER
+	---help---
+		The second LISA chip's RTL on an Arty A7 FPGA (ttsky26d-um-lisa-ttlc
+		fpga/arty_a7), 50 MHz, the console on UART1.  The same image runs on
+		lisa_sim --rev2.
+
 config ARCH_BOARD_Z8ENCORE000ZCO
 	bool "ZiLOG Z8ENCORE000ZCO Development Kit"
 	depends on ARCH_CHIP_Z8F6403
@@ -3980,6 +3989,7 @@ config ARCH_BOARD
 	default "z16f2800100zcog"              if ARCH_BOARD_Z16F2800100ZCOG
 	default "z20x"                         if ARCH_BOARD_Z20X
 	default "z80sim"                       if ARCH_BOARD_Z80SIM
+	default "arty"                         if ARCH_BOARD_LISA_ARTY
 	default "z8encore000zco"               if ARCH_BOARD_Z8ENCORE000ZCO
 	default "z8f64200100kit"               if ARCH_BOARD_Z8F64200100KIT
 	default "zp214xpa"                     if ARCH_BOARD_ZP214XPA
@@ -5093,6 +5103,9 @@ source "boards/z80/ez80/z20x/Kconfig"
 endif
 if ARCH_BOARD_Z80SIM
 source "boards/z80/z80/z80sim/Kconfig"
+endif
+if ARCH_BOARD_LISA_ARTY
+source "boards/lisa/lisa/arty/Kconfig"
 endif
 if ARCH_BOARD_BL602EVB
 source "boards/risc-v/bl602/bl602evb/Kconfig"

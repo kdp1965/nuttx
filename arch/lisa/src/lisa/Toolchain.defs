@@ -1,0 +1,78 @@
+############################################################################
+# arch/lisa/src/lisa/Toolchain.defs
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.  The
+# ASF licenses this file to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the
+# License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+############################################################################
+
+# The toolchain is sdcc -mlisa (lisa-tools/sdcc-lisa, README-lisa.md), built
+# in place: CONFIG_LISA_SDCC_PATH is its build directory (bin/sdcc,
+# share/sdcc/lib/lisa-rev2), relative to the NuttX top directory unless
+# absolute.
+
+SDCC_INSTALLDIR := $(patsubst "%",%,$(CONFIG_LISA_SDCC_PATH))
+ifeq ($(filter /%,$(SDCC_INSTALLDIR)),)
+  SDCC_INSTALLDIR := $(TOPDIR)/$(SDCC_INSTALLDIR)
+endif
+SDCC_BINDIR = $(SDCC_INSTALLDIR)/bin
+SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/lisa-rev2
+LISA_TOOLS = $(TOPDIR)/arch/lisa/src/tools
+
+# The second chip (--rev2: its stack convention and banks) in the huge model
+# (--model-huge: every function a banked call unless __nonbanked, data far).
+# lisa-sdcc adds the code bank of each source (--codeseg BANKn) from the
+# board's bank map.
+
+ARCHCPUFLAGS = -mlisa --rev2 --model-huge
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION = --debug
+endif
+
+export LISA_SDCC = $(SDCC_BINDIR)/sdcc
+export LISA_BANK_MAP = $(TOPDIR)/boards/$(patsubst "%",%,$(CONFIG_ARCH))/$(patsubst "%",%,$(CONFIG_ARCH_CHIP))/$(patsubst "%",%,$(CONFIG_ARCH_BOARD))/scripts/banks.map
+
+# Custom ASSEMBLE definition: the assembler is run directly (no
+# preprocessing), as for the other SDCC targets.
+
+define ASSEMBLE
+	@echo "AS: $1"
+	$(Q) $(AS) $(AFLAGS) $($(strip $1)_AFLAGS) $2 $1
+endef
+
+# Custom CLEAN definition: sdcc leaves its intermediate files beside the
+# object
+
+define CLEAN
+	$(Q) rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.ihx *.cdb
+endef
+
+# Tool names/paths
+
+CC = $(LISA_TOOLS)/lisa-sdcc
+CPP = $(SDCC_BINDIR)/sdcpp
+LD = $(SDCC_BINDIR)/sdldlisa
+AS = $(SDCC_BINDIR)/sdaslisa
+AR = $(LISA_TOOLS)/lisa-ar
+
+# File extensions
+
+ASMEXT = .asm
+OBJEXT = .rel
+LIBEXT = .lib
+EXEEXT = .ihx

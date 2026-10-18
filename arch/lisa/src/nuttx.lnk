@@ -1,0 +1,34 @@
+-muwx
+-i nuttx.ihx
+-y
+-b HOME=0x0000
+-b DATA=0x0000
+-b BANK2=0x10000
+-b BANK3=0x18000
+-b BANK4=0x20000
+-b BANK5=0x28000
+-b BANK6=0x30000
+-b BANK7=0x38000
+-b BANK8=0x40000
+-b BANK9=0x48000
+-b BANK10=0x50000
+-b BANK11=0x58000
+-b BANK12=0x60000
+-b BANK13=0x68000
+-b BANK14=0x70000
+-b BANK15=0x78000
+-k /Users/Ken2/projects/lisa/nuttx/../lisa-tools/sdcc-lisa/build/share/sdcc/lib/lisa-rev2/
+-l /Users/Ken2/projects/lisa/nuttx/arch/lisa/src/board/libboard.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libsched.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libdrivers.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libboards.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libc.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libmm.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libarch.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libapps.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libfs.lib
+-l /Users/Ken2/projects/lisa/nuttx/staging/libbinfmt.lib
+-l lisa
+lisa_head.rel
+
+
