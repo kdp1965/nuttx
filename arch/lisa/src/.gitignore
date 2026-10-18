@@ -1,0 +1,9 @@
+# the build makes these
+board
+chip
+*.rst
+*.ddc
+Make.dep
+.depend
+asm_mem.h
+nuttx.lnk
