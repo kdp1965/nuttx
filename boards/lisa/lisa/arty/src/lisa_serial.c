@@ -251,7 +251,11 @@ static int lisa_receive(FAR struct uart_dev_s *dev, FAR unsigned int *status)
  * Name: lisa_rxint
  *
  * Description:
- *   Call to enable or disable RX interrupts
+ *   Call to enable or disable RX interrupts.  The chip's request is the
+ *   edge of "receive data available" while the enable is set (lisa_periph.v),
+ *   not a level: a byte that is already in the FIFO when the interrupt is
+ *   enabled would never raise one, and nothing queued behind it either, so
+ *   take what is there now.
  *
  ****************************************************************************/
 
@@ -262,6 +266,10 @@ static void lisa_rxint(FAR struct uart_dev_s *dev, bool enable)
   if (enable)
     {
       g_uart_int_en |= LISA_UART1_RX_IE;
+      if ((g_uart1_status & LISA_UART_RX_AVAIL) != 0)
+        {
+          uart_recvchars(dev);
+        }
     }
   else
     {
