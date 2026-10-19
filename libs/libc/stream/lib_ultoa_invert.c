@@ -40,12 +40,60 @@
 #include "lib_ultoa_invert.h"
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* The digits of v in base, least significant first, into str.  A power of
+ * two base (shift != 0) takes a mask and a shift per digit; the others one
+ * division and a multiply.  The macro keeps the arithmetic at the width of
+ * type: on a small CPU a 64-bit division is thousands of instructions (an
+ * 8-bit machine's is a bit-serial loop in its library), and the values
+ * printf meets nearly always fit 16 or 32 bits.
+ */
+
+#define DIGITS(type, v, str, base, shift, upper)                            \
+  do                                                                        \
+    {                                                                       \
+      int d;                                                                \
+                                                                            \
+      if (shift)                                                            \
+        {                                                                   \
+          d   = (int)((v) & ((base) - 1));                                  \
+          (v) >>= (shift);                                                  \
+        }                                                                   \
+      else                                                                  \
+        {                                                                   \
+          type q = (v) / (type)(base);                                      \
+                                                                            \
+          d   = (int)((v) - q * (type)(base));                              \
+          (v) = q;                                                          \
+        }                                                                   \
+                                                                            \
+      if (d <= 9)                                                           \
+        {                                                                   \
+          d += '0';                                                         \
+        }                                                                   \
+      else if (upper)                                                       \
+        {                                                                   \
+          d += 'A' - 10;                                                    \
+        }                                                                   \
+      else                                                                  \
+        {                                                                   \
+          d += 'a' - 10;                                                    \
+        }                                                                   \
+                                                                            \
+      *(str)++ = d;                                                         \
+    }                                                                       \
+  while (v)
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base)
 {
   int upper = 0;
+  int shift = 0;
 
   if (base & XTOA_UPPER)
     {
@@ -53,28 +101,37 @@ FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base)
       base &= ~XTOA_UPPER;
     }
 
-  do
+  if (base == 16)
     {
-      int v;
-
-      v   = val % base;
-      val = val / base;
-
-      if (v <= 9)
-        {
-          v += '0';
-        }
-      else
-        {
-          if (upper)
-            v += 'A' - 10;
-          else
-            v += 'a' - 10;
-        }
-
-      *str++ = v;
+      shift = 4;
     }
-  while (val);
+  else if (base == 8)
+    {
+      shift = 3;
+    }
+  else if (base == 2)
+    {
+      shift = 1;
+    }
+
+  /* Convert at the narrowest width that holds the value */
+
+  if (val <= 0xffffu)
+    {
+      unsigned int u = (unsigned int)val;
+
+      DIGITS(unsigned int, u, str, base, shift, upper);
+    }
+  else if (val <= 0xfffffffful)
+    {
+      unsigned long u = (unsigned long)val;
+
+      DIGITS(unsigned long, u, str, base, shift, upper);
+    }
+  else
+    {
+      DIGITS(unsigned long long, val, str, base, shift, upper);
+    }
 
   return str;
 }
