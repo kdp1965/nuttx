@@ -354,9 +354,13 @@ static int vscanf_internal(FAR struct lib_instream_s *stream, FAR int *lastc,
                 }
               else if (fmt_char(fmt) == 'j')
                 {
-                  /* Same as long long if available. Otherwise, long. */
+                  /* intmax_t: long long, or long without CONFIG_SYSTEM_INT64 */
 
+#ifdef CONFIG_SYSTEM_INT64
                   modifier = LL_MOD;
+#else
+                  modifier = L_MOD;
+#endif
                 }
               else if (fmt_char(fmt) == 'h' || fmt_char(fmt) == 'H')
                 {
@@ -853,6 +857,7 @@ static int vscanf_internal(FAR struct lib_instream_s *stream, FAR int *lastc,
                       break;
 
                     case LL_MOD:
+#ifdef CONFIG_SYSTEM_INT64
                       if (sign)
                         {
                           tmplonglong = strtoll(tmp, &endptr, base);
@@ -861,6 +866,18 @@ static int vscanf_internal(FAR struct lib_instream_s *stream, FAR int *lastc,
                         {
                           tmplonglong = strtoull(tmp, &endptr, base);
                         }
+#else
+                      /* a 32-bit conversion into the 64-bit variable */
+
+                      if (sign)
+                        {
+                          tmplonglong = (long long)strtol(tmp, &endptr, base);
+                        }
+                      else
+                        {
+                          tmplonglong = strtoul(tmp, &endptr, base);
+                        }
+#endif
                       break;
                     }
 

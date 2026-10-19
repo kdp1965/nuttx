@@ -252,8 +252,13 @@ typedef uint16_t     sa_family_t;
  * to allow expressing negative tick differences directly.
  */
 
+#ifdef CONFIG_SYSTEM_INT64
 typedef int64_t      clock_t;
 typedef int64_t      time_t;         /* Holds time in seconds */
+#else
+typedef int32_t      clock_t;        /* 2^31 ticks: 24 days at 1 ms */
+typedef int32_t      time_t;         /* Holds time in seconds, to 2038 */
+#endif
 typedef int          clockid_t;      /* Identifies one time base source */
 typedef FAR void    *timer_t;        /* Represents one POSIX timer */
 

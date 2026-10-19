@@ -40,6 +40,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
 /****************************************************************************
@@ -57,6 +58,16 @@
 
 /* Internal function for use from `printf'. */
 
-FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base);
+/* The widest integer printf converts: long long, or long without
+ * CONFIG_SYSTEM_INT64
+ */
+
+#ifdef CONFIG_SYSTEM_INT64
+typedef unsigned long long __ultoa_t;
+#else
+typedef unsigned long      __ultoa_t;
+#endif
+
+FAR char *__ultoa_invert(__ultoa_t val, FAR char *str, int base);
 
 #endif /* __LIBS_LIBC_STREAM_LIB_ULTOA_INVERT_H */

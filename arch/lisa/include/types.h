@@ -28,6 +28,12 @@
 #define __ARCH_LISA_INCLUDE_TYPES_H
 
 /****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+/****************************************************************************
  * Type Declarations
  ****************************************************************************/
 
@@ -57,8 +63,18 @@ typedef signed long long   _int64_t;
 typedef unsigned long long _uint64_t;
 #define __INT64_DEFINED
 
+/* intmax_t: long long, or long without CONFIG_SYSTEM_INT64 (the 64-bit
+ * integer paths of the OS and the C library are a choice on an 8-bit
+ * target; printf's j modifier follows it)
+ */
+
+#ifdef CONFIG_SYSTEM_INT64
 typedef _int64_t           _intmax_t;
 typedef _uint64_t          _uintmax_t;
+#else
+typedef _int32_t           _intmax_t;
+typedef _uint32_t          _uintmax_t;
+#endif
 
 #if defined(__WCHAR_TYPE__)
 typedef __WCHAR_TYPE__     _wchar_t;

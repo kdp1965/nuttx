@@ -96,6 +96,20 @@
 #define TYPE_DOUBLE        4
 #define TYPE_CHAR_POINTER  5
 
+/* The width the integer conversions work in: long long, or long without
+ * CONFIG_SYSTEM_INT64 - the ll modifier then prints the low 32 bits of
+ * its argument (still consumed whole), and j is the width of intmax_t,
+ * which is long on such a configuration.
+ */
+
+#ifdef CONFIG_SYSTEM_INT64
+typedef long long          printf_int_t;
+typedef unsigned long long printf_uint_t;
+#else
+typedef long               printf_int_t;
+typedef unsigned long      printf_uint_t;
+#endif
+
 /* Support special access to CODE-space strings for Harvard architectures */
 
 #ifdef CONFIG_ARCH_ROMGETC
@@ -408,9 +422,11 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
 
           if (c == 'j')
             {
-              /* Same as long long if available. Otherwise, long. */
+              /* intmax_t: long long, or long without CONFIG_SYSTEM_INT64 */
 
+#ifdef CONFIG_SYSTEM_INT64
               flags |= FL_REPD_TYPE;
+#endif
               flags |= FL_LONG;
               flags &= ~FL_SHORT;
               continue;
@@ -929,21 +945,21 @@ str_lpad:
 
       if (c == 'd' || c == 'i')
         {
-          long long x;
+          printf_int_t x;
 
           if ((flags & FL_LONG) != 0 && (flags & FL_REPD_TYPE) != 0)
             {
 #ifdef CONFIG_LIBC_NUMBERED_ARGS
               if ((flags & FL_ARGNUMBER) != 0)
                 {
-                  x = (long long)arglist->value[argnumber - 1].ull;
+                  x = (printf_int_t)arglist->value[argnumber - 1].ull;
                 }
               else
                 {
-                  x = va_arg(ap, long long);
+                  x = (printf_int_t)va_arg(ap, long long);
                 }
 #else
-                x = va_arg(ap, long long);
+                x = (printf_int_t)va_arg(ap, long long);
 #endif
             }
           else
@@ -992,7 +1008,7 @@ str_lpad:
           flags &= ~(FL_NEGATIVE | FL_ALT);
           if (x < 0)
             {
-              x = -(unsigned long long)x;
+              x = -(printf_uint_t)x;
               flags |= FL_NEGATIVE;
             }
 
@@ -1008,21 +1024,21 @@ str_lpad:
       else
         {
           int base;
-          unsigned long long x;
+          printf_uint_t x;
 
           if ((flags & FL_LONG) != 0 && (flags & FL_REPD_TYPE) != 0)
             {
 #ifdef CONFIG_LIBC_NUMBERED_ARGS
               if ((flags & FL_ARGNUMBER) != 0)
                 {
-                  x = arglist->value[argnumber - 1].ull;
+                  x = (printf_uint_t)arglist->value[argnumber - 1].ull;
                 }
               else
                 {
-                  x = va_arg(ap, unsigned long long);
+                  x = (printf_uint_t)va_arg(ap, unsigned long long);
                 }
 #else
-                x = va_arg(ap, unsigned long long);
+                x = (printf_uint_t)va_arg(ap, unsigned long long);
 #endif
             }
           else

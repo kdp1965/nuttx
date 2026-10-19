@@ -90,7 +90,7 @@
  * Public Functions
  ****************************************************************************/
 
-FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base)
+FAR char *__ultoa_invert(__ultoa_t val, FAR char *str, int base)
 {
   int upper = 0;
   int shift = 0;
@@ -122,6 +122,7 @@ FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base)
 
       DIGITS(unsigned int, u, str, base, shift, upper);
     }
+#ifdef CONFIG_SYSTEM_INT64
   else if (val <= 0xfffffffful)
     {
       unsigned long u = (unsigned long)val;
@@ -132,6 +133,12 @@ FAR char *__ultoa_invert(unsigned long long val, FAR char *str, int base)
     {
       DIGITS(unsigned long long, val, str, base, shift, upper);
     }
+#else
+  else
+    {
+      DIGITS(unsigned long, val, str, base, shift, upper);
+    }
+#endif
 
   return str;
 }

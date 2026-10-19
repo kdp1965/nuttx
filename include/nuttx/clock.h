@@ -335,10 +335,21 @@ extern "C"
   ((ts)->tv_sec * TICK_PER_SEC + \
    div_const((ts)->tv_nsec, NSEC_PER_TICK))
 
+/* The intermediate of the microsecond and nanosecond conversions: 64
+ * bits, or the width of time_t without CONFIG_SYSTEM_INT64 (an 8-bit
+ * target with a 32-bit time_t does not carry nanoseconds since the epoch)
+ */
+
+#ifdef CONFIG_SYSTEM_INT64
+typedef int64_t clock_wide_t;
+#else
+typedef int32_t clock_wide_t;
+#endif
+
 #define clock_usec2time(ts, usec) \
   do \
     { \
-      int64_t _usec = (usec); \
+      clock_wide_t _usec = (usec); \
       (ts)->tv_sec = div_const(_usec, USEC_PER_SEC); \
       _usec -= (ts)->tv_sec * USEC_PER_SEC; \
       (ts)->tv_nsec = _usec * NSEC_PER_USEC; \
@@ -352,7 +363,7 @@ extern "C"
 #define clock_nsec2time(ts, nsec) \
   do \
     { \
-      int64_t _nsec = (nsec); \
+      clock_wide_t _nsec = (nsec); \
       (ts)->tv_sec = div_const(_nsec, NSEC_PER_SEC); \
       _nsec -= (ts)->tv_sec * NSEC_PER_SEC; \
       (ts)->tv_nsec = _nsec; \

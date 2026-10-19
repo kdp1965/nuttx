@@ -55,6 +55,26 @@ config DISABLE_IDLE_LOOP
 
 menu "Clocks and Timers"
 
+config SYSTEM_INT64
+	bool "64-bit integers in the OS and the C library"
+	default y
+	---help---
+		time_t and clock_t are 64-bit, intmax_t is long long (where the
+		architecture's types honour this option), printf and scanf
+		convert the ll and j modifiers in 64 bits, and the clock
+		conversions use 64-bit intermediates.
+
+		Without it - for an 8-bit target, where every 64-bit operation
+		is a library call of hundreds to thousands of instructions -
+		time_t and clock_t are 32-bit (time_t wraps in 2038, clock_t
+		after 2^31 ticks: 24 days at a 1 ms tick, which clock_compare
+		handles), intmax_t is long, printf's ll and j conversions print
+		the low 32 bits (a long long argument is still consumed whole),
+		scanf's ll stores a 32-bit conversion, and none of them link
+		64-bit arithmetic.  Code that needs 64 bits (the hrtimer, the
+		tickless scheduler, the nanosecond counters) is not for such a
+		configuration.
+
 config ARCH_HAVE_TICKLESS
 	bool
 
