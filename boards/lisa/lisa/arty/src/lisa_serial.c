@@ -134,9 +134,12 @@ static uart_dev_t g_uart1port =
  * Name: lisa_uart_isr
  *
  * Description:
- *   The UART1 interrupt: acknowledge it first (a byte arriving while the
- *   FIFO is drained raises a new one), then take what the FIFO holds and
- *   feed the transmitter.
+ *   The UART1 interrupt.  The chip's request is a level: a byte waits and
+ *   the receive interrupt is enabled, or the transmitter is empty and its
+ *   interrupt is enabled (lisa_periph.v, RESPIN 25); it ends when the FIFO
+ *   is drained, the next byte written or the transmit enable dropped, and
+ *   the write to INT_STATUS clears nothing there (it is kept for an RTL that
+ *   latches an edge).
  *
  ****************************************************************************/
 
@@ -251,11 +254,10 @@ static int lisa_receive(FAR struct uart_dev_s *dev, FAR unsigned int *status)
  * Name: lisa_rxint
  *
  * Description:
- *   Call to enable or disable RX interrupts.  The chip's request is the
- *   edge of "receive data available" while the enable is set (lisa_periph.v),
- *   not a level: a byte that is already in the FIFO when the interrupt is
- *   enabled would never raise one, and nothing queued behind it either, so
- *   take what is there now.
+ *   Call to enable or disable RX interrupts.  The chip's request is a level
+ *   (a byte already waiting when the enable is set interrupts at once); the
+ *   drain here is what that level does in hardware, kept so the driver also
+ *   runs on an RTL that latches the edge of "receive data available".
  *
  ****************************************************************************/
 
@@ -301,8 +303,10 @@ static void lisa_send(FAR struct uart_dev_s *dev, int ch)
  * Name: lisa_txint
  *
  * Description:
- *   Call to enable or disable TX interrupts.  The request comes with the
- *   edge of the buffer emptying: when it is empty already, feed it now.
+ *   Call to enable or disable TX interrupts.  The chip's request is a level
+ *   (the transmitter empty with the enable set interrupts at once); feeding
+ *   it here when it is empty already is the same thing, and keeps the driver
+ *   right on an RTL that latches the edge of the buffer emptying.
  *
  ****************************************************************************/
 

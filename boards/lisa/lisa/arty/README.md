@@ -67,13 +67,15 @@ objects (the map is not a make dependency):
 The link warns about symbols both NuttX's libc and sdcc's library define
 (memcpy, strlen, ...): NuttX's win, the warnings are harmless.
 
-## The UART interrupts are edges
+## The UART interrupts are levels
 
-`lisa_periph.v` raises the UART1 request on the rising edge of "receive data
-available" and of "transmit buffer empty" while the matching enable in
-`LISA_UART_INT_EN` is set, not as a level.  The driver therefore drains the
-FIFO itself when it enables the receive interrupt (`lisa_rxint`) and feeds
-the transmitter when it enables the transmit one (`lisa_txint`); its handler
-acknowledges `INT_STATUS` before it reads, so a byte arriving during the
-drain raises the next request.  `lisa_sim --rev2` models the edges since
-2026-10-18 (it re-asserted a level before, which hid the first case).
+`lisa_periph.v` (the second chip since RESPIN 25, 2026-10-18) raises the UART1
+request while a byte waits and the receive interrupt is enabled, or while the
+transmitter is empty and its interrupt is enabled; the request ends when the
+FIFO is drained, the next byte is written or the transmit enable is dropped,
+and writing INT_STATUS clears nothing there (the timer's bit is latched and
+needs the write).  The driver still drains the FIFO when it enables the
+receive interrupt and feeds the transmitter when it enables the transmit one,
+which is what the level does in hardware, so it also runs on an RTL that
+latches the edges (the RTL before 2026-10-18, which in fact could not write
+the enables at all).  `lisa_sim --rev2` models the levels.
