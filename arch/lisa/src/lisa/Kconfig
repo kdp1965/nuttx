@@ -22,37 +22,42 @@ config LISA_SDCC_PATH
 		relative to the NuttX top directory unless absolute.
 
 config LISA_TASK_BANKS
-	bool "Task banks: each task's stack and heap in a 16 KB data bank"
+	bool "Task banks: each task's stack in a stack bank, its heap in a granule"
 	default n
 	select ARCH_BANKED_TASKS
 	select MM_KERNEL_HEAP
 	---help---
-		The second chip's data and stack bank registers give 15 window
-		banks of 16 KB above the common lower 16 KB.  With this option
-		the kernel's data and heap stay in the common bank, visible to
-		every task, and each task lives in a window bank with its stack
-		and the heap its malloc() draws from: a pthread in its group's
-		bank, a kernel thread in bank 1 with the idle thread, a task in
-		the first bank with room for its stack (a new bank is opened
-		when none has).  A heap pointer is valid only in its own bank:
-		tasks in different banks share memory through the kernel (pipes,
+		The second chip's data space (RESPIN 28) is the common 8 KB below
+		0x2000, the data window 0x2000-0x3FFF on one of 32 granules of
+		8 KB and the stack window 0x4000-0x7FFF on one of 16 banks of
+		16 KB, by address.  With this option the kernel's data and heap
+		stay in the common 8 KB, visible to every task, and each task
+		gets a granule for the heap its malloc() draws from and a stack
+		in a stack bank: a small stack shares a bank with other tasks'
+		stacks, a stack of LISA_TASK_OWN_BANK_STACK bytes or more gets a
+		bank of its own, and the task's heap then runs from 0x2000 up to
+		its stack, 24 KB less the stack.  A pthread's stack comes from
+		its group's heap; the kernel threads share bank 1 and granule 1
+		with the idle thread.  A heap pointer is valid only under its
+		own granule: tasks share memory through the kernel (pipes,
 		files, message queues), not by pointer.  The kernel reaches a
-		task's stack in another bank through a visit on the bank's
-		scratch stack (lisa_bank_call).  /proc/meminfo lists the kernel
-		heap, each open bank and the total of all 15.
+		task's stack or heap through a visit on a scratch stack in the
+		common 8 KB (lisa_bank_call).  /proc/meminfo lists the kernel
+		heap, the calling task's heap, each stack bank and the total of
+		all 31 granules.
 
-		Without it the data space is the flat 32 KB: bank 0 and bank 1
-		as one heap, every stack in it.
+		Without it the data space is the flat 32 KB: one heap, every
+		stack in it.
 
-config LISA_TASK_HEAP_RESERVE
-	int "Heap to leave a bank when placing a task's stack"
+config LISA_TASK_OWN_BANK_STACK
+	int "Stack size from which a task gets a bank of its own"
 	default 4096
 	depends on LISA_TASK_BANKS
 	---help---
-		A task's stack goes to the first open bank that keeps at least
-		this much free after it, so that the tasks in the bank have heap
-		to malloc() from; when no bank has, a new one is opened, and
-		only when all 15 are open does a stack take the last room of a
-		bank.
+		A task created with a stack of at least this many bytes takes a
+		free stack bank for itself: the stack at the top, the task's heap
+		from the data window up to it (24 KB less the stack).  A smaller
+		stack goes to the first shared bank with room, a new one when none
+		has, and the task's heap is its 8 KB granule.
 
 endif

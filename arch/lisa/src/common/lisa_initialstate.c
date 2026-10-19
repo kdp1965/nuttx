@@ -63,9 +63,11 @@ void up_initial_state(FAR struct tcb_s *tcb)
   FAR struct xcptcontext *xcp = &tcb->xcp;
 #ifdef CONFIG_LISA_TASK_BANKS
   uint8_t bank = xcp->bank;       /* chosen by up_create_stack; 0 = the idle */
+  uint8_t gran = xcp->gran;
 
   memset(xcp, 0, sizeof(struct xcptcontext));
   xcp->bank  = bank ? bank : 1;
+  xcp->gran  = gran ? gran : 1;
   xcp->fbank = xcp->bank;
 #else
   memset(xcp, 0, sizeof(struct xcptcontext));
@@ -118,7 +120,7 @@ static int lisa_initialstate_op(FAR void *arg)
   regs[XCPT_PC_HI] = entry.b[1] | 0x80;
   regs[XCPT_CB]    = entry.b[2];
 #ifdef CONFIG_LISA_TASK_BANKS
-  regs[XCPT_DB]    = xcp->bank;
+  regs[XCPT_DB]    = xcp->gran;
   regs[XCPT_SB]    = xcp->bank;
 #else
   regs[XCPT_DB]    = g_data_bank;

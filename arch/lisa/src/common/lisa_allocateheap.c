@@ -26,6 +26,7 @@
 
 #include <nuttx/config.h>
 #include <sys/types.h>
+#include <assert.h>
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 
@@ -45,25 +46,28 @@
  ****************************************************************************/
 
 #ifdef CONFIG_LISA_TASK_BANKS
-/* The kernel heap: bank 0 above the kernel's data (every task sees it) */
+/* The kernel heap: the common 8K above the kernel's data (every task sees
+ * it)
+ */
 
 void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 {
   uintptr_t base = lisa_heapbase();
 
+  DEBUGASSERT(base < LISA_COMMON_END);
   *heap_start = (FAR void *)base;
-  *heap_size  = LISA_BANK_WINDOW - base;
+  *heap_size  = LISA_COMMON_END - base;
 }
 
-/* The user heap umm_initialize makes is bank 1's (USR_HEAP is the running
- * task's bank heap, the idle thread's at this point); the other banks'
- * heaps are made when a task first needs them (lisa_banks.c)
+/* The user heap umm_initialize makes is granule 1's, the data window as
+ * the reset banks map it: the kernel threads' and the idle thread's; a
+ * task's own is made in its granule when it is placed (lisa_banks.c)
  */
 
 void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 {
-  *heap_start = (FAR void *)LISA_BANK_WINDOW;
-  *heap_size  = LISA_BANK_HEAP_END(1) - LISA_BANK_WINDOW;
+  *heap_start = (FAR void *)LISA_DATA_WINDOW;
+  *heap_size  = LISA_GRANULE_SIZE;
   board_autoled_on(LED_HEAPALLOCATE);
 }
 #else

@@ -123,13 +123,15 @@ struct xcptcontext
   FAR chipreg_t *saved_regs;
 
 #ifdef CONFIG_LISA_TASK_BANKS
-  /* The task's memory bank: its stack and its heap, SB = DB while it runs
-   * (lisa_internal.h, "Task banks"); the bank its saved frame lies in
-   * (the bank's scratch stack while a visit of the kernel's is suspended);
-   * an argument the kernel's visits pass
+  /* The task's stack bank (SB while it runs) and the granule of the data
+   * window its heap is in (DB) - lisa_internal.h, "Task banks"; the bank
+   * its saved frame lies in (the stack it stopped on: a pthread's is in
+   * the granule, a visit's in the common 8K, where SB does not matter);
+   * an argument for the visits (up_task_call) that have no room for one
    */
 
   uint8_t bank;
+  uint8_t gran;
   uint8_t fbank;
   uint16_t varg;
 #endif

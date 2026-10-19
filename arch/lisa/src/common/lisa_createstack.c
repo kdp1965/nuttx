@@ -68,33 +68,36 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
   if (!tcb->stack_alloc_ptr)
     {
 #ifdef CONFIG_LISA_TASK_BANKS
-      /* A pthread shares its group's bank (they share pointers), a kernel
-       * thread lives in bank 1 with the idle thread, a task takes the
-       * first bank with room for its stack, a new one when none has
+      /* A pthread's stack comes from its group's heap (the banks go by
+       * address: a stack in the data window is fine), a kernel thread's
+       * from bank 1's, the idle thread's bank; a task gets its place:
+       * a granule for its heap and a stack in a shared bank, or a bank
+       * of its own for a big stack (lisa_task_place)
        */
-
-      uint8_t bank;
 
       if (ttype == TCB_FLAG_TTYPE_PTHREAD)
         {
-          bank = this_task()->xcp.bank;
-          tcb->stack_alloc_ptr = lisa_bank_malloc(bank, stack_size);
+          FAR struct tcb_s *rtcb = this_task();
+
+          tcb->xcp.bank  = rtcb->xcp.bank;
+          tcb->xcp.gran  = rtcb->xcp.gran;
+          tcb->xcp.fbank = rtcb->xcp.bank;
+          tcb->stack_alloc_ptr = kumm_malloc(stack_size);
         }
       else if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
-          bank = 1;
-          tcb->stack_alloc_ptr = lisa_bank_malloc(bank, stack_size);
+          tcb->xcp.bank  = 1;
+          tcb->xcp.gran  = 1;
+          tcb->xcp.fbank = 1;
+          tcb->stack_alloc_ptr = lisa_bank_malloc(1, stack_size);
+          if (tcb->stack_alloc_ptr)
+            {
+              lisa_bank_task_add(1);
+            }
         }
       else
         {
-          bank = lisa_bank_pick(stack_size, &tcb->stack_alloc_ptr);
-        }
-
-      tcb->xcp.bank  = bank;
-      tcb->xcp.fbank = bank;
-      if (tcb->stack_alloc_ptr)
-        {
-          lisa_bank_task_add(bank);
+          lisa_task_place(tcb, stack_size);
         }
 #elif defined(CONFIG_MM_KERNEL_HEAP)
       if (ttype == TCB_FLAG_TTYPE_KERNEL)

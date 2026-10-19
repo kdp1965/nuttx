@@ -50,8 +50,19 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
   if (dtcb->stack_alloc_ptr && (dtcb->flags & TCB_FLAG_FREE_STACK))
     {
 #ifdef CONFIG_LISA_TASK_BANKS
-      lisa_bank_free(dtcb->xcp.bank, dtcb->stack_alloc_ptr);
-      lisa_bank_task_del(dtcb->xcp.bank);
+      if (ttype == TCB_FLAG_TTYPE_PTHREAD)
+        {
+          kumm_free(dtcb->stack_alloc_ptr);          /* the group's heap: ours */
+        }
+      else if (ttype == TCB_FLAG_TTYPE_KERNEL)
+        {
+          lisa_bank_free(dtcb->xcp.bank, dtcb->stack_alloc_ptr);
+          lisa_bank_task_del(dtcb->xcp.bank);
+        }
+      else
+        {
+          lisa_task_unplace(dtcb);
+        }
 #elif defined(CONFIG_MM_KERNEL_HEAP)
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {

@@ -98,6 +98,7 @@ retry:
   rtcb->xcp.regs = regs;
 #ifdef CONFIG_LISA_TASK_BANKS
   g_lisa_bank = lisa_sb();                     /* the frame is on this stack */
+  g_lisa_gran = lisa_db();
 #endif
   lisa_fullcontextrestore(regs);
 }

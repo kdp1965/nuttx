@@ -64,7 +64,9 @@
 	.globl	_lisa_heapbase
 	.globl	_g_lisa_ie
 	.globl	_g_lisa_bank		; task banks (lisa_banks.c)
+	.globl	_g_lisa_gran
 	.globl	_g_bank_new
+	.globl	_g_bank_newdb
 	.globl	_g_bank_ie
 	.globl	_g_bank_sb
 	.globl	_g_bank_db
@@ -89,17 +91,21 @@
 ;   matter: the return address goes to RA, with its condition bit set (ret
 ;   reloads the predicate from it), and ret takes it.
 ;
-;   Everything is read IX-relative and staged below the frame SP-relative,
-;   so the frame must be visible through both the data bank and the stack
-;   bank it names: the port keeps DB = SB = 1 (the flat 32K), see
-;   arch/lisa/src/common/lisa_initialstate.c.
+;   The frame is read IX-relative and staged below it SP-relative: both go
+;   by address (RESPIN 28), so the bank registers are first set to the
+;   frame's place - g_lisa_bank for a stack in the stack window, g_lisa_gran
+;   for a pthread's in the data window (task banks: lisa_banks.c; without
+;   them both stay 1, the flat 32K) - and then to the task's own from the
+;   frame.
 ;
 ;**************************************************************************
 
 _lisa_restore:
 	di
 	lda	_g_lisa_bank
-	sta	LISA_DB			; the frame is in the resumed task's bank (task banks: lisa_banks.c)
+	sta	LISA_SB			; the frame is on the resumed thread's stack: in its bank ..
+	lda	_g_lisa_gran
+	sta	LISA_DB			; .. or, a pthread's, in its group's granule (task banks)
 	ldax	XCPT_IE(ix)
 	sta	_g_lisa_ie
 	ldax	XCPT_CB(ix)
@@ -222,13 +228,13 @@ _lisa_fullcontextrestore:
 
 ;**************************************************************************
 ; void lisa_bank_call(uint8_t bank): the kernel's visit to another task's
-; bank.  Runs lisa_bank_op (g_bank_op.fn(g_bank_op.arg), the result in
-; g_bank_ret) with SB = DB = the bank on the bank's scratch stack
-; (g_bank_top), so that C code there sees its own locals; the caller's SP,
-; SB, DB and interrupt state are kept on that stack and restored.  The
-; temporaries are globals in the common bank, used with interrupts off,
-; so a visit made from an interrupt (its own part of the scratch) cannot
-; disturb the one it cut into.
+; memory.  Runs lisa_bank_op (g_bank_op.fn(g_bank_op.arg), the result in
+; g_bank_ret) with SB = bank and DB = g_bank_newdb on a scratch stack in
+; the common 8K (g_bank_top: visible under any banks), so that C code
+; there sees its own locals; the caller's SP, SB, DB and interrupt state
+; are kept on that stack and restored.  The temporaries are globals in the
+; common 8K, used with interrupts off, so a visit made from an interrupt
+; (its own scratch) cannot disturb the one it cut into.
 ;**************************************************************************
 _lisa_bank_call:
 	sra				; the return address, on the caller's stack
@@ -250,7 +256,8 @@ _lisa_bank_call:
 	sta	_g_bank_db
 	lda	_g_bank_new
 	sta	LISA_SB
-	sta	LISA_DB			; from here the window is the bank
+	lda	_g_bank_newdb
+	sta	LISA_DB			; from here the windows are the visited task's
 	lda	_g_bank_top
 	tax
 	lda	_g_bank_top+1

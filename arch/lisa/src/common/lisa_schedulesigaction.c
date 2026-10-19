@@ -57,11 +57,12 @@ static int lisa_sigaction_op(FAR void *arg);
 
 void up_schedule_sigaction(FAR struct tcb_s *tcb)
 {
-  /* The frame to duplicate is in the bank the task's stack was in when
-   * it stopped (a scratch stack, if inside a visit)
+  /* The frame to duplicate is on the stack the task stopped on: in its
+   * stack bank, a pthread's in its granule (the common scratch if inside
+   * a visit: then the banks do not matter)
    */
 
-  lisa_bank_visit(tcb->xcp.fbank, lisa_sigaction_op, tcb);
+  lisa_visit(tcb->xcp.fbank, tcb->xcp.gran, lisa_sigaction_op, tcb);
 }
 
 static int lisa_sigaction_op(FAR void *arg)

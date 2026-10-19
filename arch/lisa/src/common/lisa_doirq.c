@@ -122,7 +122,8 @@ FAR chipreg_t *lisa_doirq(uint8_t irq, FAR chipreg_t *regs) __nonbanked
   regs = tcb->xcp.regs;
   tcb->xcp.regs = NULL;
 #ifdef CONFIG_LISA_TASK_BANKS
-  g_lisa_bank = tcb->xcp.fbank;                /* lisa_restore reads it under that bank */
+  g_lisa_bank = tcb->xcp.fbank;                /* lisa_restore reads it under those banks */
+  g_lisa_gran = tcb->xcp.gran;
 #endif
   return regs;
 }
