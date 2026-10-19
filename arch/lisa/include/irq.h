@@ -88,6 +88,14 @@
 #define XCPTCONTEXT_REGS    16
 #define XCPTCONTEXT_SIZE    16
 
+/* The flags byte of a frame is what ldirq reads and stirq writes back:
+ * {amode[2:0], signed_inv_live, cflag_save, signed_inv, Z, C}.  A frame not
+ * made by an interrupt (a new task, a voluntary switch) carries amode 1,
+ * the mode the compiler's code runs in; rets takes amode from it.
+ */
+
+#define XCPT_FLAGS_AMODE1   0x20
+
 #define STACKFRAME_ALIGN    2
 
 /****************************************************************************

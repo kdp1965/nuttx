@@ -98,6 +98,7 @@ void up_initial_state(FAR struct tcb_s *tcb)
   regs[XCPT_CB]    = entry.b[2];
   regs[XCPT_DB]    = g_data_bank;
   regs[XCPT_SB]    = g_stack_bank;
+  regs[XCPT_FLAGS] = XCPT_FLAGS_AMODE1;
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
   regs[XCPT_IE]    = 1;

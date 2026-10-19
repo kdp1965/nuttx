@@ -38,6 +38,7 @@
 	XCPT_PC_HI	== 6
 	XCPT_PC_LO	== 7
 	XCPT_FLAGS	== 8
+	XCPT_FLAGS_AMODE1 == 0x20		; the flags byte of a frame made without an interrupt
 	XCPT_CSAVE	== 9
 	XCPT_IRQ	== 10
 	XCPT_RA_HI	== 11
@@ -157,7 +158,8 @@ _lisa_switchcontext:
 	ldi	#0
 	push	a			; XCPT_IRQ
 	push	a			; XCPT_CSAVE
-	push	a			; XCPT_FLAGS
+	ldi	#XCPT_FLAGS_AMODE1
+	push	a			; XCPT_FLAGS: amode 1 (rets takes amode from it)
 	ldax	4(sp)
 	push	a			; XCPT_PC_LO = RA low
 	ldax	4(sp)
@@ -247,9 +249,10 @@ _up_saveusercontext:
 	stax	XCPT_A(ix)
 	stax	XCPT_IX_HI(ix)
 	stax	XCPT_IX_LO(ix)
-	stax	XCPT_FLAGS(ix)
 	stax	XCPT_CSAVE(ix)
 	stax	XCPT_IRQ(ix)
+	ldi	#XCPT_FLAGS_AMODE1
+	stax	XCPT_FLAGS(ix)		; amode 1 (rets takes amode from it)
 	lda	LISA_CB
 	stax	XCPT_CB(ix)
 	lda	LISA_DB
