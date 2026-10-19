@@ -302,7 +302,10 @@ mm_initialize_heap(FAR const struct mm_heap_config_s *config)
 
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MEMINFO)
 #  if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
-  procfs_register_meminfo(&heap->mm_procfs);
+  if (!config->noprocfs)
+    {
+      procfs_register_meminfo(&heap->mm_procfs);
+    }
 #  endif
 #endif
 

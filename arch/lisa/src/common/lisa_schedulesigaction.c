@@ -52,8 +52,25 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_LISA_TASK_BANKS
+static int lisa_sigaction_op(FAR void *arg);
+
 void up_schedule_sigaction(FAR struct tcb_s *tcb)
 {
+  /* The frame to duplicate is in the bank the task's stack was in when
+   * it stopped (a scratch stack, if inside a visit)
+   */
+
+  lisa_bank_visit(tcb->xcp.fbank, lisa_sigaction_op, tcb);
+}
+
+static int lisa_sigaction_op(FAR void *arg)
+{
+  FAR struct tcb_s *tcb = (FAR struct tcb_s *)arg;
+#else
+void up_schedule_sigaction(FAR struct tcb_s *tcb)
+{
+#endif
   FAR chipreg_t *regs;
   uintptr_t sp;
   union
@@ -88,4 +105,7 @@ void up_schedule_sigaction(FAR struct tcb_s *tcb)
   regs[XCPT_IE]    = 0;
 
   tcb->xcp.regs    = regs;
+#ifdef CONFIG_LISA_TASK_BANKS
+  return OK;
+#endif
 }

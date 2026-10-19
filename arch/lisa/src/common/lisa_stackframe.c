@@ -46,6 +46,16 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_LISA_TASK_BANKS
+static int lisa_stackframe_op(FAR void *arg)
+{
+  FAR struct tcb_s *tcb = (FAR struct tcb_s *)arg;
+
+  memset(tcb->stack_base_ptr, 0, tcb->xcp.varg);
+  return OK;
+}
+#endif
+
 FAR void *up_stack_frame(FAR struct tcb_s *tcb, size_t frame_size)
 {
   FAR void *ret;
@@ -58,7 +68,12 @@ FAR void *up_stack_frame(FAR struct tcb_s *tcb, size_t frame_size)
     }
 
   ret = tcb->stack_base_ptr;
+#ifdef CONFIG_LISA_TASK_BANKS
+  tcb->xcp.varg = frame_size;
+  up_task_call(tcb, lisa_stackframe_op, tcb);     /* cleared in the task's bank */
+#else
   memset(ret, 0, frame_size);
+#endif
 
   tcb->stack_base_ptr  = (FAR uint8_t *)tcb->stack_base_ptr + frame_size;
   tcb->adj_stack_size -= frame_size;

@@ -68,6 +68,9 @@ FAR chipreg_t *lisa_doirq(uint8_t irq, FAR chipreg_t *regs) __nonbanked
   /* The running task's context is the frame (valid until it runs again) */
 
   (*running_task)->xcp.regs = regs;
+#ifdef CONFIG_LISA_TASK_BANKS
+  (*running_task)->xcp.fbank = lisa_sb();     /* the frame is on the stack we were on */
+#endif
   g_lisa_inirq = 1;
 
   board_autoled_on(LED_INIRQ);
@@ -118,5 +121,8 @@ FAR chipreg_t *lisa_doirq(uint8_t irq, FAR chipreg_t *regs) __nonbanked
 
   regs = tcb->xcp.regs;
   tcb->xcp.regs = NULL;
+#ifdef CONFIG_LISA_TASK_BANKS
+  g_lisa_bank = tcb->xcp.fbank;                /* lisa_restore reads it under that bank */
+#endif
   return regs;
 }

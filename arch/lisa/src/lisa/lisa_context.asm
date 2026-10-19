@@ -63,6 +63,15 @@
 	.globl	_up_getsp
 	.globl	_lisa_heapbase
 	.globl	_g_lisa_ie
+	.globl	_g_lisa_bank		; task banks (lisa_banks.c)
+	.globl	_g_bank_new
+	.globl	_g_bank_ie
+	.globl	_g_bank_sb
+	.globl	_g_bank_db
+	.globl	_g_bank_sp
+	.globl	_g_bank_top
+	.globl	_lisa_bank_op
+	.globl	_lisa_bank_call
 
 	.area	CODE (CODE)
 
@@ -89,6 +98,8 @@
 
 _lisa_restore:
 	di
+	lda	_g_lisa_bank
+	sta	LISA_DB			; the frame is in the resumed task's bank (task banks: lisa_banks.c)
 	ldax	XCPT_IE(ix)
 	sta	_g_lisa_ie
 	ldax	XCPT_CB(ix)
@@ -208,6 +219,87 @@ _lisa_switchcontext:
 _lisa_fullcontextrestore:
 	ldxx	0(sp)
 	jal	_lisa_restore
+
+;**************************************************************************
+; void lisa_bank_call(uint8_t bank): the kernel's visit to another task's
+; bank.  Runs lisa_bank_op (g_bank_op.fn(g_bank_op.arg), the result in
+; g_bank_ret) with SB = DB = the bank on the bank's scratch stack
+; (g_bank_top), so that C code there sees its own locals; the caller's SP,
+; SB, DB and interrupt state are kept on that stack and restored.  The
+; temporaries are globals in the common bank, used with interrupts off,
+; so a visit made from an interrupt (its own part of the scratch) cannot
+; disturb the one it cut into.
+;**************************************************************************
+_lisa_bank_call:
+	sra				; the return address, on the caller's stack
+	sta	_g_bank_new		; A = the bank
+	di
+	lda	_g_lisa_ie
+	sta	_g_bank_ie
+	ldi	#0
+	sta	_g_lisa_ie
+	spix
+	txa
+	sta	_g_bank_sp
+	txau
+	andi	#0x7f
+	sta	_g_bank_sp+1		; the caller's SP
+	lda	LISA_SB
+	sta	_g_bank_sb
+	lda	LISA_DB
+	sta	_g_bank_db
+	lda	_g_bank_new
+	sta	LISA_SB
+	sta	LISA_DB			; from here the window is the bank
+	lda	_g_bank_top
+	tax
+	lda	_g_bank_top+1
+	taxu
+	xchg	sp			; SP = the scratch top
+	lda	_g_bank_sp+1
+	push	a
+	lda	_g_bank_sp
+	push	a			; 3(sp), 4(sp): the caller's SP
+	lda	_g_bank_sb
+	push	a			; 2(sp)
+	lda	_g_bank_db
+	push	a			; 1(sp)
+	lda	_g_bank_ie
+	push	a			; 0(sp): interrupts were enabled
+	cpi	#0
+	bz	1$
+	sta	_g_lisa_ie
+	ei
+1$:	jal	_lisa_bank_op
+	di
+	ldi	#0
+	sta	_g_lisa_ie
+	pop	a
+	sta	_g_bank_ie
+	pop	a
+	sta	_g_bank_db
+	pop	a
+	sta	_g_bank_sb
+	pop	a
+	sta	_g_bank_sp
+	pop	a
+	sta	_g_bank_sp+1
+	lda	_g_bank_sb
+	sta	LISA_SB
+	lda	_g_bank_db
+	sta	LISA_DB			; the caller's banks again
+	lda	_g_bank_sp
+	tax
+	lda	_g_bank_sp+1
+	taxu
+	xchg	sp			; and its stack
+	lda	_g_bank_ie
+	cpi	#0
+	bz	2$
+	sta	_g_lisa_ie
+	ei
+2$:	lra
+	ret
 
 ;**************************************************************************
 ; Name: up_saveusercontext

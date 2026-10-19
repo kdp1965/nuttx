@@ -126,6 +126,12 @@
 
 #  define USR_HEAP (*USERSPACE->us_data->us_heap)
 
+#elif defined(CONFIG_ARCH_BANKED_TASKS)
+/* Each task's heap is in its memory bank: the running task's */
+
+struct mm_heap_s;
+FAR struct mm_heap_s **up_task_heap_ref(void);
+#  define USR_HEAP (*up_task_heap_ref())
 #else
 /* Otherwise, the user heap data structures are in common .bss */
 
@@ -196,6 +202,7 @@ struct mm_heap_config_s
   FAR void             *start;
   size_t                size;
   bool                  nokasan;
+  bool                  noprocfs;   /* the caller registers the heap with procfs */
 };
 
 struct mempool_init_s

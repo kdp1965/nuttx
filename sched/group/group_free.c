@@ -74,7 +74,13 @@ void group_free(FAR struct task_group_s *group, FAR void *mem)
        * allocator.
        */
 
+#ifdef CONFIG_ARCH_BANKED_TASKS
+      /* A task's bank is its own: the group's memory is the kernel's */
+
+      kmm_free(mem);
+#else
       kumm_free(mem);
+#endif
     }
 }
 

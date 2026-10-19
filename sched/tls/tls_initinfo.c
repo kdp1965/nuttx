@@ -27,6 +27,8 @@
 #include <assert.h>
 #include <errno.h>
 
+#include <nuttx/arch.h>
+
 #include "tls.h"
 
 /****************************************************************************
@@ -47,7 +49,25 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_BANKED_TASKS
+static int tls_init_info_here(FAR struct tcb_s *tcb);
+
+/* The TLS block is at the base of the task's stack: in its bank */
+
+static int tls_init_info_op(FAR void *arg)
+{
+  return tls_init_info_here((FAR struct tcb_s *)arg);
+}
+
 int tls_init_info(FAR struct tcb_s *tcb)
+{
+  return up_task_call(tcb, tls_init_info_op, tcb);
+}
+
+static int tls_init_info_here(FAR struct tcb_s *tcb)
+#else
+int tls_init_info(FAR struct tcb_s *tcb)
+#endif
 {
   FAR struct tls_info_s *info;
 

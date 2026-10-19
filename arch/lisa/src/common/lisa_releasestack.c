@@ -49,16 +49,21 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 {
   if (dtcb->stack_alloc_ptr && (dtcb->flags & TCB_FLAG_FREE_STACK))
     {
-#ifdef CONFIG_MM_KERNEL_HEAP
+#ifdef CONFIG_LISA_TASK_BANKS
+      lisa_bank_free(dtcb->xcp.bank, dtcb->stack_alloc_ptr);
+      lisa_bank_task_del(dtcb->xcp.bank);
+#elif defined(CONFIG_MM_KERNEL_HEAP)
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
           kmm_free(dtcb->stack_alloc_ptr);
         }
       else
 #endif
+#ifndef CONFIG_LISA_TASK_BANKS
         {
           kumm_free(dtcb->stack_alloc_ptr);
         }
+#endif
     }
 
   dtcb->flags &= ~TCB_FLAG_FREE_STACK;

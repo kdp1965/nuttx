@@ -63,16 +63,23 @@
 
 struct mallinfo
 {
-  int arena;    /* This is the total size of memory allocated
+#ifdef CONFIG_ARCH_BANKED_TASKS
+  /* The banks add up to more than a 16-bit int holds */
+
+#  define MALLINFO_INT long
+#else
+#  define MALLINFO_INT int
+#endif
+  MALLINFO_INT arena;    /* This is the total size of memory allocated
                  * for use by malloc in bytes. */
-  int ordblks;  /* This is the number of free (not in use) chunks */
-  int aordblks; /* This is the number of allocated (in use) chunks */
-  int mxordblk; /* Size of the largest free (not in use) chunk */
-  int uordblks; /* This is the total size of memory occupied by
+  MALLINFO_INT ordblks;  /* This is the number of free (not in use) chunks */
+  MALLINFO_INT aordblks; /* This is the number of allocated (in use) chunks */
+  MALLINFO_INT mxordblk; /* Size of the largest free (not in use) chunk */
+  MALLINFO_INT uordblks; /* This is the total size of memory occupied by
                  * chunks handed out by malloc. */
-  int fordblks; /* This is the total size of memory occupied
+  MALLINFO_INT fordblks; /* This is the total size of memory occupied
                  * by free (not in use) chunks. */
-  int usmblks;  /* This is the largest amount of space ever allocated */
+  MALLINFO_INT usmblks;  /* This is the largest amount of space ever allocated */
 };
 
 struct malltask

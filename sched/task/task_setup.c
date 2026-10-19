@@ -26,6 +26,8 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/kmalloc.h>
+
 #include <sys/types.h>
 #include <ctype.h>
 #include <stdint.h>
@@ -518,6 +520,27 @@ static int nxthread_setup_scheduler(FAR struct tcb_s *tcb, int priority,
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_BANKED_TASKS
+struct stackargs_copy_s
+{
+  FAR struct tcb_s *tcb;
+  FAR char *dst;                /* on the task's stack, in its bank */
+  size_t len;
+  char block[1];                /* the argv block, final pointers */
+};
+
+/* Runs in the task's bank (up_task_call) */
+
+static int nxtask_stackargs_copy(FAR void *arg)
+{
+  FAR struct stackargs_copy_s *copy = (FAR struct stackargs_copy_s *)arg;
+
+  memcpy(copy->dst, copy->block, copy->len);
+  nxsched_get_tls(copy->tcb)->tl_argv = (FAR char **)copy->dst;
+  return OK;
+}
+#endif
+
 int nxtask_setup_stackargs(FAR struct tcb_s *tcb,
                            FAR const char *name,
                            FAR char * const argv[])
@@ -597,6 +620,55 @@ int nxtask_setup_stackargs(FAR struct tcb_s *tcb,
         {
           ret = -ENOMEM;
         }
+#ifdef CONFIG_ARCH_BANKED_TASKS
+      else
+        {
+          /* The stack is in the task's bank: build the block in the
+           * common bank with the pointers of its final place, then copy
+           * it in and point the TLS at it under the task's bank
+           */
+
+          FAR struct stackargs_copy_s *copy;
+          FAR char **bargv;
+          FAR char *bstr;
+          FAR char *fstr;
+
+          copy = kmm_malloc(sizeof(*copy) + argvlen + strtablen);
+          if (copy == NULL)
+            {
+              ret = -ENOMEM;
+            }
+          else
+            {
+              copy->tcb = tcb;
+              copy->dst = (FAR char *)stackargv;
+              copy->len = argvlen + strtablen;
+              bargv     = (FAR char **)copy->block;
+              bstr      = copy->block + argvlen;
+              fstr      = (FAR char *)stackargv + argvlen;
+              bargv[0]  = fstr;
+              nbytes    = strlen(name) + 1;
+              strlcpy(bstr, name, strtablen);
+              bstr     += nbytes;
+              fstr     += nbytes;
+              strtablen -= nbytes;
+
+              for (i = 0; i < argc; i++)
+                {
+                  bargv[i + 1] = fstr;
+                  nbytes       = strlen(argv[i]) + 1;
+                  strlcpy(bstr, argv[i], strtablen);
+                  bstr        += nbytes;
+                  fstr        += nbytes;
+                  strtablen   -= nbytes;
+                }
+
+              bargv[argc + 1] = NULL;
+              ret = up_task_call(tcb, nxtask_stackargs_copy, copy);
+              kmm_free(copy);
+            }
+        }
+#else
       else
         {
           /* Get the address of the string table that will lie immediately
@@ -645,6 +717,7 @@ int nxtask_setup_stackargs(FAR struct tcb_s *tcb,
 
           nxsched_get_tls(tcb)->tl_argv = stackargv;
         }
+#endif
     }
 
   return ret;

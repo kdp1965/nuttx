@@ -95,6 +95,9 @@ void umm_initialize(FAR void *heap_start, size_t heap_size)
   USR_HEAP = mm_initialize_pool(&config, NULL);
 #else
   config.name = "Umem";
+#ifdef CONFIG_ARCH_BANKED_TASKS
+  config.noprocfs = true;     /* the architecture registers its banks */
+#endif
   USR_HEAP = mm_initialize_pool(&config, NULL);
 #endif
 }

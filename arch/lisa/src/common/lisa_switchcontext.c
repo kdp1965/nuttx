@@ -64,6 +64,15 @@ void up_switch_context(FAR struct tcb_s *tcb, FAR struct tcb_s *rtcb)
 
       g_running_tasks[this_cpu()] = tcb;
 
+#ifdef CONFIG_LISA_TASK_BANKS
+      /* Our frame goes on the stack we are on; lisa_restore reads the
+       * next task's under its bank
+       */
+
+      rtcb->xcp.fbank = lisa_sb();
+      g_lisa_bank     = tcb->xcp.fbank;
+#endif
+
       /* Then switch contexts */
 
       lisa_switchcontext(&rtcb->xcp.regs, tcb->xcp.regs);

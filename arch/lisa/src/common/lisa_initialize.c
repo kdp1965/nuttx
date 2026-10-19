@@ -47,6 +47,10 @@
 
 void up_initialize(void)
 {
+#ifdef CONFIG_LISA_TASK_BANKS
+  lisa_bank_initialize();
+#endif
+
   /* Initialize the serial device driver */
 
 #ifdef USE_SERIALDRIVER

@@ -26,6 +26,10 @@
 
 #include <nuttx/config.h>
 
+#include <string.h>
+#include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
+
 #include <sched.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -55,6 +59,36 @@
  *   The actual string length that was written.
  *
  ****************************************************************************/
+
+#ifdef CONFIG_ARCH_BANKED_TASKS
+/* The argv strings are on the task's stack, in its bank: formatted there
+ * (up_task_call) into a buffer in the common bank
+ */
+
+struct argvstr_s
+{
+  FAR struct tcb_s *tcb;
+  FAR char *buf;
+  size_t size;
+  size_t n;
+};
+
+static int nxtask_argvstr_op(FAR void *arg)
+{
+  FAR struct argvstr_s *a = (FAR struct argvstr_s *)arg;
+  FAR char **argv = nxsched_get_stackargs(a->tcb);
+
+  if (argv++)
+    {
+      while (*argv != NULL && a->n < a->size)
+        {
+          a->n += snprintf(a->buf + a->n, a->size - a->n, " %s", *argv++);
+        }
+    }
+
+  return OK;
+}
+#endif
 
 size_t nxtask_argvstr(FAR struct tcb_s *tcb, FAR char *args, size_t size)
 {
@@ -89,6 +123,24 @@ size_t nxtask_argvstr(FAR struct tcb_s *tcb, FAR char *args, size_t size)
   else
 #endif
     {
+#ifdef CONFIG_ARCH_BANKED_TASKS
+      FAR struct argvstr_s *a = kmm_malloc(sizeof(*a) + size);
+
+      *args = '\0';
+      if (a != NULL)
+        {
+          a->tcb    = tcb;
+          a->buf    = (FAR char *)(a + 1);
+          a->size   = size;
+          a->n      = 0;
+          a->buf[0] = '\0';
+          up_task_call(tcb, nxtask_argvstr_op, a);
+          n = a->n < size - 1 ? a->n : size - 1;
+          memcpy(args, a->buf, n);
+          args[n] = '\0';
+          kmm_free(a);
+        }
+#else
       FAR char **argv = nxsched_get_stackargs(tcb);
 
       if (argv++)
@@ -98,6 +150,7 @@ size_t nxtask_argvstr(FAR struct tcb_s *tcb, FAR char *args, size_t size)
               n += snprintf(args + n, size - n, " %s", *argv++);
             }
         }
+#endif
     }
 
 #ifdef CONFIG_ARCH_ADDRENV

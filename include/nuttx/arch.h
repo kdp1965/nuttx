@@ -380,6 +380,36 @@ void up_initial_state(FAR struct tcb_s *tcb);
 
 int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype);
 
+#ifdef CONFIG_ARCH_BANKED_TASKS
+/****************************************************************************
+ * Name: up_task_call
+ *
+ * Description:
+ *   Run fn(arg) with the memory bank of the task tcb visible: the only way
+ *   for the kernel to read or write that task's stack (its initial frame,
+ *   its TLS block, its argv) when it is not the running task.  arg must
+ *   point into the common bank (the kernel heap or static data), never to
+ *   the caller's stack.  Returns what fn returns.
+ *
+ ****************************************************************************/
+
+int up_task_call(FAR struct tcb_s *tcb, CODE int (*fn)(FAR void *),
+                 FAR void *arg);
+
+/****************************************************************************
+ * Name: up_task_heap_ref
+ *
+ * Description:
+ *   The running task's user heap (a pointer to the pointer, so that the
+ *   user heap initialization can assign it): USR_HEAP on a banked
+ *   architecture.
+ *
+ ****************************************************************************/
+
+struct mm_heap_s;
+FAR struct mm_heap_s **up_task_heap_ref(void);
+#endif
+
 /****************************************************************************
  * Name: up_use_stack
  *

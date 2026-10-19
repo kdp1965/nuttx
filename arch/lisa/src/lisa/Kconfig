@@ -21,4 +21,38 @@ config LISA_SDCC_PATH
 		The build directory of sdcc-lisa (bin/sdcc, share/sdcc/lib/lisa-rev2),
 		relative to the NuttX top directory unless absolute.
 
+config LISA_TASK_BANKS
+	bool "Task banks: each task's stack and heap in a 16 KB data bank"
+	default n
+	select ARCH_BANKED_TASKS
+	select MM_KERNEL_HEAP
+	---help---
+		The second chip's data and stack bank registers give 15 window
+		banks of 16 KB above the common lower 16 KB.  With this option
+		the kernel's data and heap stay in the common bank, visible to
+		every task, and each task lives in a window bank with its stack
+		and the heap its malloc() draws from: a pthread in its group's
+		bank, a kernel thread in bank 1 with the idle thread, a task in
+		the first bank with room for its stack (a new bank is opened
+		when none has).  A heap pointer is valid only in its own bank:
+		tasks in different banks share memory through the kernel (pipes,
+		files, message queues), not by pointer.  The kernel reaches a
+		task's stack in another bank through a visit on the bank's
+		scratch stack (lisa_bank_call).  /proc/meminfo lists the kernel
+		heap, each open bank and the total of all 15.
+
+		Without it the data space is the flat 32 KB: bank 0 and bank 1
+		as one heap, every stack in it.
+
+config LISA_TASK_HEAP_RESERVE
+	int "Heap to leave a bank when placing a task's stack"
+	default 4096
+	depends on LISA_TASK_BANKS
+	---help---
+		A task's stack goes to the first open bank that keeps at least
+		this much free after it, so that the tasks in the bank have heap
+		to malloc() from; when no bank has, a new one is opened, and
+		only when all 15 are open does a stack take the last room of a
+		bank.
+
 endif

@@ -446,6 +446,19 @@ config ARCH_NEED_ADDRENV_MAPPING
 	bool
 	default n
 
+config ARCH_BANKED_TASKS
+	bool
+	default n
+	---help---
+		The architecture places each task's stack and its heap in a memory
+		bank that its own pointers reach only while the task runs (a
+		16-bit address space with a banked window).  Selected by the
+		architecture.  Then: malloc() allocates from the running task's
+		bank (USR_HEAP is *up_task_heap_ref()), the kernel touches another
+		task's stack only through up_task_call(), which runs the function
+		in that task's bank, and the architecture registers the banks with
+		procfs itself (the user heap is created with noprocfs).
+
 config ARCH_HAVE_EXTRA_HEAPS
 	bool
 	default n

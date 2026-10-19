@@ -54,20 +54,22 @@ __sfr __at(LISA_STACK_BANK) g_stack_bank;
  *
  ****************************************************************************/
 
+#ifdef CONFIG_LISA_TASK_BANKS
+static int lisa_initialstate_op(FAR void *arg);
+#endif
+
 void up_initial_state(FAR struct tcb_s *tcb)
 {
   FAR struct xcptcontext *xcp = &tcb->xcp;
-  FAR chipreg_t *regs;
-  uintptr_t top;
-  union
-  {
-    start_t start;
-    uint8_t b[3];
-  } entry;
-
-  /* Initialize the initial exception register context structure */
+#ifdef CONFIG_LISA_TASK_BANKS
+  uint8_t bank = xcp->bank;       /* chosen by up_create_stack; 0 = the idle */
 
   memset(xcp, 0, sizeof(struct xcptcontext));
+  xcp->bank  = bank ? bank : 1;
+  xcp->fbank = xcp->bank;
+#else
+  memset(xcp, 0, sizeof(struct xcptcontext));
+#endif
 
   /* The idle thread is running on its stack already (lisa_head.asm) */
 
@@ -78,6 +80,25 @@ void up_initial_state(FAR struct tcb_s *tcb)
       tcb->adj_stack_size  = CONFIG_IDLETHREAD_STACKSIZE;
       return;
     }
+
+#ifdef CONFIG_LISA_TASK_BANKS
+  /* The frame is on the task's stack: in its bank */
+
+  up_task_call(tcb, lisa_initialstate_op, tcb);
+}
+
+static int lisa_initialstate_op(FAR void *arg)
+{
+  FAR struct tcb_s *tcb = (FAR struct tcb_s *)arg;
+  FAR struct xcptcontext *xcp = &tcb->xcp;
+#endif
+  FAR chipreg_t *regs;
+  uintptr_t top;
+  union
+  {
+    start_t start;
+    uint8_t b[3];
+  } entry;
 
   /* The frame at the top of the stack; the task starts with SP above it */
 
@@ -96,8 +117,13 @@ void up_initial_state(FAR struct tcb_s *tcb)
   regs[XCPT_PC_LO] = entry.b[0];
   regs[XCPT_PC_HI] = entry.b[1] | 0x80;
   regs[XCPT_CB]    = entry.b[2];
+#ifdef CONFIG_LISA_TASK_BANKS
+  regs[XCPT_DB]    = xcp->bank;
+  regs[XCPT_SB]    = xcp->bank;
+#else
   regs[XCPT_DB]    = g_data_bank;
   regs[XCPT_SB]    = g_stack_bank;
+#endif
   regs[XCPT_FLAGS] = XCPT_FLAGS_AMODE1;
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
@@ -105,4 +131,7 @@ void up_initial_state(FAR struct tcb_s *tcb)
 #endif
 
   xcp->regs = regs;
+#ifdef CONFIG_LISA_TASK_BANKS
+  return OK;
+#endif
 }

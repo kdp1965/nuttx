@@ -96,5 +96,8 @@ retry:
 
   board_autoled_off(LED_SIGNAL);
   rtcb->xcp.regs = regs;
+#ifdef CONFIG_LISA_TASK_BANKS
+  g_lisa_bank = lisa_sb();                     /* the frame is on this stack */
+#endif
   lisa_fullcontextrestore(regs);
 }

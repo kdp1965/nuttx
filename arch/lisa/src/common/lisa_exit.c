@@ -63,6 +63,10 @@ void up_exit(int status)
 
   tcb = this_task();
   g_running_tasks[this_cpu()] = tcb;
+#ifdef CONFIG_LISA_TASK_BANKS
+
+  g_lisa_bank = tcb->xcp.fbank;          /* lisa_restore reads the frame under its bank */
+#endif
 
   lisa_fullcontextrestore(tcb->xcp.regs);
   PANIC();

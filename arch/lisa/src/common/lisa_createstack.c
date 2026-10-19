@@ -36,6 +36,8 @@
 #include <nuttx/tls.h>
 #include <nuttx/board.h>
 
+#include <sched/sched.h>
+
 #include "lisa_internal.h"
 
 /****************************************************************************
@@ -65,16 +67,47 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
 
   if (!tcb->stack_alloc_ptr)
     {
-#ifdef CONFIG_MM_KERNEL_HEAP
+#ifdef CONFIG_LISA_TASK_BANKS
+      /* A pthread shares its group's bank (they share pointers), a kernel
+       * thread lives in bank 1 with the idle thread, a task takes the
+       * first bank with room for its stack, a new one when none has
+       */
+
+      uint8_t bank;
+
+      if (ttype == TCB_FLAG_TTYPE_PTHREAD)
+        {
+          bank = this_task()->xcp.bank;
+          tcb->stack_alloc_ptr = lisa_bank_malloc(bank, stack_size);
+        }
+      else if (ttype == TCB_FLAG_TTYPE_KERNEL)
+        {
+          bank = 1;
+          tcb->stack_alloc_ptr = lisa_bank_malloc(bank, stack_size);
+        }
+      else
+        {
+          bank = lisa_bank_pick(stack_size, &tcb->stack_alloc_ptr);
+        }
+
+      tcb->xcp.bank  = bank;
+      tcb->xcp.fbank = bank;
+      if (tcb->stack_alloc_ptr)
+        {
+          lisa_bank_task_add(bank);
+        }
+#elif defined(CONFIG_MM_KERNEL_HEAP)
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
           tcb->stack_alloc_ptr = kmm_malloc(stack_size);
         }
       else
 #endif
+#ifndef CONFIG_LISA_TASK_BANKS
         {
           tcb->stack_alloc_ptr = kumm_malloc(stack_size);
         }
+#endif
 
 #ifdef CONFIG_DEBUG_FEATURES
       if (!tcb->stack_alloc_ptr)
