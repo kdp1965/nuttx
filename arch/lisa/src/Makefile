@@ -101,6 +101,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 	@echo "-b HOME=0x0000" >> nuttx.lnk
 	@echo "-b DATA=0x0000" >> nuttx.lnk
+	@echo "-b CONST=0x8000" >> nuttx.lnk
 	$(Q) for b in $(BANKS); do printf -- "-b BANK%d=0x%X\n" $$b $$(($$b * 32768)) >> nuttx.lnk; done
 	@echo "-k $(SDCC_LIBDIR)/" >> nuttx.lnk
 	@echo "-l $(BOARDDIR)/libboard$(LIBEXT)" >> nuttx.lnk

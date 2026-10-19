@@ -51,6 +51,7 @@
 	; The bank registers (direct peripheral addresses)
 
 	LISA_CB		== 0x215
+	LISA_KB		== 0x21f		; the constant bank: lda (ix++) reads from it (RESPIN 26)
 	LISA_DB		== 0x216
 	LISA_SB		== 0x217
 
@@ -81,10 +82,10 @@
 	.area	GSINIT (CODE)
 	.area	GSFINAL (CODE)
 	.area	CODE (CODE)
-	.area	CONST (CODE,CDATA)
-	.area	INITIALIZER (CODE,CDATA)
-	.area	FINITIALIZER (CODE,CDATA)
-	.area	CABS (ABS,CODE,CDATA)
+	.area	CONST (CODE,KDATA)		; packed constants (sdcc --pack-const): this
+	.area	INITIALIZER (CODE,KDATA)	; module is linked first, so its flags are
+	.area	FINITIALIZER (CODE,KDATA)	; the areas' - the linker reads them as bytes
+	.area	CABS (ABS,CODE,KDATA)		; in bank k_CONST, through lda (ix++)
 
 	.area	DATA
 	.area	OSEG (OVR,DATA)
@@ -157,8 +158,9 @@ _lisa_irq8:
 ;**************************************************************************
 ; Reset: the stack at the top of RAM, the arithmetic mode the compiler
 ; assumes, the data areas cleared and initialized the way sdcc's own
-; startup does it (the initial values are ldi/ret pairs in code space, one
-; pair per byte, read with call ix), then nx_start in its code bank.
+; startup does it (the initial values are bytes packed two to a code word
+; in the bank KB, read with lda (ix++): sdcc --pack-const, RESPIN 26),
+; then KB on the program's constants and nx_start in its code bank.
 ;**************************************************************************
 
 _lisa_reset:
@@ -221,13 +223,14 @@ _lisa_reset:
 	stax	3(sp)
 	ldi	#<l_INITIALIZED
 	stax	2(sp)
+	ldi	#k_INITIALIZER		; the bank the packed values are in
+	sta	LISA_KB
 	ldx	#s_INITIALIZER
 5$:
 	ldax	2(sp)
 	or	3(sp)
 	bz	6$
-	call	ix
-	adx	#1
+	lda	(ix++)
 	push	ix
 	ldxx	2(sp)
 	stax	0(ix)
@@ -250,13 +253,14 @@ _lisa_reset:
 	stax	3(sp)
 	ldi	#<l_FINITIALIZED
 	stax	2(sp)
+	ldi	#k_FINITIALIZER
+	sta	LISA_KB
 	ldx	#s_FINITIALIZER
 7$:
 	ldax	2(sp)
 	or	3(sp)
 	bz	8$
-	call	ix
-	adx	#1
+	lda	(ix++)
 	push	ix
 	ldxx	2(sp)
 	stax	0(ix)
@@ -270,6 +274,11 @@ _lisa_reset:
 	br	7$
 8$:
 	ads	#4
+
+	; the program's constants: KB stays on their bank (one per image, so
+	; no frame carries it)
+	ldi	#k_CONST
+	sta	LISA_KB
 
 	; nx_start, a banked function entered directly: its code bank first
 	; (a write to CB takes effect at the next fetch from the window)
