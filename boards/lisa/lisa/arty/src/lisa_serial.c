@@ -55,6 +55,21 @@ __sfr __at(LISA_UART_INT_EN)  g_uart_int_en;
 __sfr __at(LISA_INT_ENABLE)   g_int_enable;
 __sfr __at(LISA_INT_STATUS)   g_int_status;
 
+#ifdef CONFIG_LISA_SCHED_TRACE
+/* Receive accounting (CONFIG_LISA_SCHED_TRACE, read with nsh's xd): bytes
+ * taken from the FIFO, overruns seen, the receive interrupt disables and
+ * enables
+ */
+
+volatile uint16_t g_lisa_rx_bytes;
+volatile uint8_t  g_lisa_rx_ovr;
+volatile uint8_t  g_lisa_rx_off;
+volatile uint8_t  g_lisa_rx_on;
+#  define RX_COUNT(v) ((v)++)
+#else
+#  define RX_COUNT(v)
+#endif
+
 #ifdef USE_SERIALDRIVER
 
 /****************************************************************************
@@ -247,6 +262,14 @@ static int lisa_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 static int lisa_receive(FAR struct uart_dev_s *dev, FAR unsigned int *status)
 {
   *status = g_uart1_status;
+  RX_COUNT(g_lisa_rx_bytes);
+#ifdef CONFIG_LISA_SCHED_TRACE
+  if ((*status & LISA_UART_RX_OVERRUN) != 0)
+    {
+      g_lisa_rx_ovr++;
+    }
+#endif
+
   return g_uart1_data;
 }
 
@@ -267,6 +290,7 @@ static void lisa_rxint(FAR struct uart_dev_s *dev, bool enable)
 
   if (enable)
     {
+      RX_COUNT(g_lisa_rx_on);
       g_uart_int_en |= LISA_UART1_RX_IE;
       if ((g_uart1_status & LISA_UART_RX_AVAIL) != 0)
         {
@@ -275,6 +299,7 @@ static void lisa_rxint(FAR struct uart_dev_s *dev, bool enable)
     }
   else
     {
+      RX_COUNT(g_lisa_rx_off);
       g_uart_int_en &= ~LISA_UART1_RX_IE;
     }
 

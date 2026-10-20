@@ -95,8 +95,8 @@
 #  define LISA_BANK_END         0x8000u
 #  define LISA_NBANKS           16
 #  define LISA_BANK_TOP(n)      ((n) == 1 ? LISA_IDLE_STACK_BASE : LISA_BANK_END)
-#  define LISA_VISIT_STACK      512u                         /* the kernel's visits */
-#  define LISA_IRQ_VISIT_STACK  256u                         /* a visit made from an interrupt */
+#  define LISA_VISIT_STACK      640u                         /* the kernel's visits (312 seen, with a tick nested) */
+#  define LISA_IRQ_VISIT_STACK  256u                         /* a visit made from an interrupt (signal frames) */
 #endif
 
 /* The peripheral registers are reached through the direct addressing of
@@ -159,6 +159,12 @@ extern int g_bank_ret;                       /* what it returned */
 
 void lisa_bank_call(uint8_t bank) __nonbanked;     /* lisa_context.asm: g_bank_op under SB = bank, DB = g_bank_newdb, on the scratch g_bank_top */
 void lisa_bank_op(void) __nonbanked;               /* its callee */
+
+#ifdef CONFIG_LISA_SCHED_TRACE
+void lisa_swtrace(uint8_t from, uint8_t to, uint8_t how);   /* the context-switch trace */
+#else
+#  define lisa_swtrace(from, to, how)
+#endif
 
 #ifdef CONFIG_LISA_TASK_BANKS
 int lisa_visit(uint8_t sb, uint8_t db, CODE int (*fn)(FAR void *),

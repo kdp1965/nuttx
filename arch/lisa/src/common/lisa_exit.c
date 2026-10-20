@@ -67,6 +67,7 @@ void up_exit(int status)
 
   g_lisa_bank = tcb->xcp.fbank;          /* lisa_restore reads the frame under its banks */
   g_lisa_gran = tcb->xcp.gran;
+  lisa_swtrace(0xff, (uint8_t)tcb->pid, 3);
 #endif
 
   lisa_fullcontextrestore(tcb->xcp.regs);

@@ -37,6 +37,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
+#include <nuttx/clock.h>
 #include <nuttx/mutex.h>
 #include <nuttx/mm/mm.h>
 #include <nuttx/fs/procfs.h>
@@ -65,6 +66,24 @@ __data uint16_t g_bank_sp;
 __data uint16_t g_bank_top;
 struct lisa_bankop_s g_bank_op;
 int g_bank_ret;
+
+#ifdef CONFIG_LISA_SCHED_TRACE
+/* The context-switch trace (CONFIG_LISA_SCHED_TRACE): from, to, how, tick */
+
+uint8_t g_swtrace[64 * 4];
+uint8_t g_swidx;
+
+void lisa_swtrace(uint8_t from, uint8_t to, uint8_t how)
+{
+  FAR uint8_t *e = &g_swtrace[(g_swidx & 63) * 4];
+
+  e[0] = from;
+  e[1] = to;
+  e[2] = how;
+  e[3] = (uint8_t)clock_systime_ticks();
+  g_swidx++;
+}
+#endif
 
 /* lisa_bank_call's callee: on the scratch stack, under the visited banks */
 

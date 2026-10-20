@@ -104,6 +104,7 @@ FAR chipreg_t *lisa_doirq(uint8_t irq, FAR chipreg_t *regs) __nonbanked
       /* Update scheduler parameters */
 
       nxsched_switch_context(*running_task, tcb);
+      lisa_swtrace((uint8_t)(*running_task)->pid, (uint8_t)tcb->pid, 2 + 16 * irq);
 
       /* Record the new "running" task when context switch occurred.
        * g_running_tasks[] is only used by assertion logic for reporting

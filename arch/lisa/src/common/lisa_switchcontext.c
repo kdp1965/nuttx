@@ -72,6 +72,7 @@ void up_switch_context(FAR struct tcb_s *tcb, FAR struct tcb_s *rtcb)
       rtcb->xcp.fbank = lisa_sb();
       g_lisa_bank     = tcb->xcp.fbank;
       g_lisa_gran     = tcb->xcp.gran;
+      lisa_swtrace((uint8_t)rtcb->pid, (uint8_t)tcb->pid, 1);
 #endif
 
       /* Then switch contexts */

@@ -49,6 +49,19 @@ config LISA_TASK_BANKS
 		Without it the data space is the flat 32 KB: one heap, every
 		stack in it.
 
+config LISA_SCHED_TRACE
+	bool "A context-switch trace and UART receive counters, read with xd"
+	default n
+	---help---
+		A debugging aid: a ring of the last 64 context switches (the pid
+		switched from, the pid switched to, how - 1 a switch, 2 + 16 x the
+		irq an interrupt, 3 an exit - and the low byte of the tick) in
+		g_swtrace with its index g_swidx, and in the UART driver counters
+		of the bytes taken from the receive FIFO, the overruns seen and the
+		receive interrupt disables and enables (g_lisa_rx_bytes, _ovr,
+		_off, _on).  Read them with nsh's xd at the addresses nuttx.map
+		gives (arch/lisa/src/nuttx.map).
+
 config LISA_TASK_OWN_BANK_STACK
 	int "Stack size from which a task gets a bank of its own"
 	default 4096
