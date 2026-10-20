@@ -26,7 +26,10 @@ CMN_CSRCS  = lisa_allocateheap.c lisa_createstack.c lisa_doirq.c
 CMN_CSRCS += lisa_exit.c lisa_idle.c lisa_initialize.c lisa_initialstate.c
 CMN_CSRCS += lisa_irq.c lisa_nputs.c
 CMN_CSRCS += lisa_registerdump.c lisa_releasestack.c lisa_stackframe.c
-CMN_CSRCS += lisa_switchcontext.c lisa_usestack.c lisa_banks.c
+CMN_CSRCS += lisa_switchcontext.c lisa_usestack.c
+ifneq ($(filter y,$(CONFIG_LISA_TASK_BANKS) $(CONFIG_LISA_SCHED_TRACE)),)
+CMN_CSRCS += lisa_banks.c
+endif
 
 ifeq ($(CONFIG_ENABLE_ALL_SIGNALS),y)
 CMN_CSRCS += lisa_schedulesigaction.c lisa_sigdeliver.c

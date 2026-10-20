@@ -180,7 +180,10 @@ uint8_t lisa_sb(void) __nonbanked;
 uint8_t lisa_db(void) __nonbanked;
 #endif
 void lisa_fullcontextrestore(FAR chipreg_t *regs) __nonbanked;
-uintptr_t lisa_heapbase(void) __naked __nonbanked;
+FAR void *lisa_heapbase(void) __naked __nonbanked;   /* the first byte after the data areas, in IX */
+#if !defined(CONFIG_LISA_TASK_BANKS) && CONFIG_MM_REGIONS > 1
+void lisa_addregions(void);                          /* the rest of the RAM into the heap, a region at a time */
+#endif
 
 /* lisa_doirq.c: called from the interrupt entry in lisa_head.asm with the
  * vector and the frame; returns the frame to resume

@@ -35,9 +35,6 @@
  * Private Data
  ****************************************************************************/
 
-__sfr __at(LISA_DATA_BANK)  g_data_bank;
-__sfr __at(LISA_STACK_BANK) g_stack_bank;
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -108,24 +105,19 @@ static int lisa_initialstate_op(FAR void *arg)
   regs = (FAR chipreg_t *)(top - XCPTCONTEXT_SIZE);
   memset(regs, 0, XCPTCONTEXT_SIZE);
 
-  regs[XCPT_SP_LO] = (chipreg_t)top;
-  regs[XCPT_SP_HI] = (chipreg_t)(top >> 8);
+  regs[XCPT_SP_LO]  = (chipreg_t)top;
+  regs[XCPT_SP_MID] = (chipreg_t)(top >> 8);
+  regs[XCPT_SP_HI]  = (chipreg_t)(top >> 16);
 
-  /* The entry point: its address with the RA condition bit (bit 7 of the
-   * high byte: ret reloads the predicate from it) and its code bank
+  /* The entry point: its 24-bit code pointer - the window word, then the
+   * code bank in the top byte with the RA condition bit (bit 7: ret
+   * reloads the predicate from it) - as rets / ret take it
    */
 
   entry.start      = tcb->start;
-  regs[XCPT_PC_LO] = entry.b[0];
-  regs[XCPT_PC_HI] = entry.b[1] | 0x80;
-  regs[XCPT_CB]    = entry.b[2];
-#ifdef CONFIG_LISA_TASK_BANKS
-  regs[XCPT_DB]    = xcp->gran;
-  regs[XCPT_SB]    = xcp->bank;
-#else
-  regs[XCPT_DB]    = g_data_bank;
-  regs[XCPT_SB]    = g_stack_bank;
-#endif
+  regs[XCPT_PC_LO]  = entry.b[0];
+  regs[XCPT_PC_MID] = entry.b[1];
+  regs[XCPT_PC_HI]  = entry.b[2] | 0x80;
   regs[XCPT_FLAGS] = XCPT_FLAGS_AMODE1;
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS

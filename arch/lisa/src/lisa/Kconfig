@@ -21,9 +21,23 @@ config LISA_SDCC_PATH
 		The build directory of sdcc-lisa (bin/sdcc, share/sdcc/lib/lisa-rev2),
 		relative to the NuttX top directory unless absolute.
 
+config LISA_REV3
+	bool "The third chip: 24-bit registers, a flat 8 MB data space"
+	default y
+	select ARCH_WIDE_HEAP
+	---help---
+		The twenty-four-bit chip (ttsky26d REV3.md): IX, SP and the return
+		addresses are 24 bits, pointers 3 bytes (sdcc --rev3, the library
+		lisa-rev3), the data space the flat 8 MB with no banks - one heap
+		from the end of the data areas to the idle thread's stack, in
+		regions of 64 KB (size_t is 16 bits), so MM_REGIONS has to cover
+		the RAM (130 for 8 MB).  Without it the kernel is built for the
+		second chip (sdcc --rev2, the task banks optional).
+
 config LISA_TASK_BANKS
 	bool "Task banks: each task's stack in a stack bank, its heap in a granule"
 	default n
+	depends on !LISA_REV3
 	select ARCH_BANKED_TASKS
 	select MM_KERNEL_HEAP
 	---help---

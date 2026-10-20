@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/kmalloc.h>
 
 #include "lisa_internal.h"
 
@@ -52,7 +53,7 @@
 
 void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 {
-  uintptr_t base = lisa_heapbase();
+  uintptr_t base = (uintptr_t)lisa_heapbase();
 
   DEBUGASSERT(base < LISA_COMMON_END);
   *heap_start = (FAR void *)base;
@@ -71,12 +72,56 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
   board_autoled_on(LED_HEAPALLOCATE);
 }
 #else
+
+/* The data space is flat: one kernel heap from the end of the data areas
+ * to the idle thread's stack, in regions no larger than size_t counts
+ * (16 bits: a region starts as one free node, and mm's node sizes are
+ * size_t).  The first region is what up_allocate_heap() hands nx_start;
+ * the rest are added by lisa_addregions() from up_initialize(), once the
+ * heap exists.  CONFIG_MM_REGIONS has to cover them (8 MB / 64 KB = 129).
+ */
+
+#define LISA_REGION_MAX  0xfff0u
+#define LISA_REGION_MIN  256u          /* a tail smaller than this is left out */
+
+static uintptr_t g_lisa_heapnext;      /* the first byte not yet in a region */
+
+static size_t lisa_region_size(uintptr_t start)
+{
+  uintptr_t size = LISA_IDLE_STACK_BASE - start;
+
+  return size > LISA_REGION_MAX ? LISA_REGION_MAX : (size_t)size;
+}
+
 void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 {
-  uintptr_t base = lisa_heapbase();
+  uintptr_t base = (uintptr_t)lisa_heapbase();
+  size_t size = lisa_region_size(base);
 
   *heap_start = (FAR void *)base;
-  *heap_size  = LISA_IDLE_STACK_BASE - base;
+  *heap_size  = size;
+  g_lisa_heapnext = base + size;
   board_autoled_on(LED_HEAPALLOCATE);
 }
+
+#if CONFIG_MM_REGIONS > 1
+void lisa_addregions(void)
+{
+  int n;
+
+  for (n = 1; n < CONFIG_MM_REGIONS; n++)
+    {
+      size_t size = lisa_region_size(g_lisa_heapnext);
+
+      if (size < LISA_REGION_MIN)
+        {
+          break;
+        }
+
+      kmm_addregion((FAR void *)g_lisa_heapnext, size);
+      g_lisa_heapnext += size;
+    }
+}
 #endif
+#endif
+

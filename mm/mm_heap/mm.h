@@ -170,6 +170,16 @@ typedef uint16_t mmsize_t;
 typedef size_t mmsize_t;
 #endif
 
+/* The heap's totals: with CONFIG_ARCH_WIDE_HEAP the regions add up to more
+ * than size_t holds.
+ */
+
+#ifdef CONFIG_ARCH_WIDE_HEAP
+typedef unsigned long mmtotal_t;
+#else
+typedef size_t mmtotal_t;
+#endif
+
 /* This describes an allocated chunk */
 
 struct mm_allocnode_s
@@ -226,15 +236,15 @@ struct mm_heap_s
 
   /* This is the size of the heap provided to mm */
 
-  size_t mm_heapsize;
+  mmtotal_t mm_heapsize;
 
   /* This is the heap maximum used memory size */
 
-  size_t mm_maxused;
+  mmtotal_t mm_maxused;
 
   /* This is the current used size of the heap */
 
-  size_t mm_curused;
+  mmtotal_t mm_curused;
 
   /* The first and last allocated nodes of each region */
 

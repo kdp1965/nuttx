@@ -68,31 +68,26 @@
  * condition bit in bit 7, at the lower address.
  */
 
-#define XCPT_SP_LO          0   /* SP at the interrupt (informational) */
-#define XCPT_SP_HI          1
-#define XCPT_IE             2   /* 1: interrupts were enabled */
-#define XCPT_SB             3   /* the stack bank [p:0x17] */
-#define XCPT_DB             4   /* the data bank [p:0x16] */
-#define XCPT_CB             5   /* the code bank [p:0x15] */
-#define XCPT_PC_HI          6   /* the resume address: IA after an interrupt, RA after a call; bit 7 = the RA condition bit (1) */
-#define XCPT_PC_LO          7
-#define XCPT_FLAGS          8   /* the ISR flag shadows: {signed_inv, Z, C} (ldirq / stirq) */
-#define XCPT_CSAVE          9   /* the cflag_save shadow in bit 0 (savec / restc) */
-#define XCPT_IRQ            10  /* the vector taken (scratch) */
-#define XCPT_RA_HI          11  /* RA with its condition bit */
+#define XCPT_SP_LO          0   /* SP at the interrupt (informational): 24 bits, low byte first */
+#define XCPT_SP_MID         1
+#define XCPT_SP_HI          2
+#define XCPT_IE             3   /* 1: interrupts were enabled */
+#define XCPT_PC_HI          4   /* the resume address: IA after an interrupt, RA after a call: bit 7 the RA condition bit (1), bits 6:0 the code bank */
+#define XCPT_PC_MID         5
+#define XCPT_PC_LO          6
+#define XCPT_FLAGS          7   /* the ISR flag shadows: {signed_inv, Z, C} (ldirq / stirq) */
+#define XCPT_CSAVE          8   /* the cflag_save shadow in bit 0 (savec / restc) */
+#define XCPT_IRQ            9   /* the vector taken (scratch) */
+#define XCPT_RA_HI          10  /* RA with its condition bit and bank */
+#define XCPT_RA_MID         11
 #define XCPT_RA_LO          12
 #define XCPT_IX_HI          13  /* IX with its condition bit */
-#define XCPT_IX_LO          14
-#define XCPT_A              15
+#define XCPT_IX_MID         14
+#define XCPT_IX_LO          15
+#define XCPT_A              16
 
-#define XCPTCONTEXT_REGS    16
-#define XCPTCONTEXT_SIZE    16
-
-/* The flags byte of a frame is what ldirq reads and stirq writes back:
- * {amode[2:0], signed_inv_live, cflag_save, signed_inv, Z, C}.  A frame not
- * made by an interrupt (a new task, a voluntary switch) carries amode 1,
- * the mode the compiler's code runs in; rets takes amode from it.
- */
+#define XCPTCONTEXT_REGS    17
+#define XCPTCONTEXT_SIZE    17
 
 #define XCPT_FLAGS_AMODE1   0x20
 
@@ -146,13 +141,17 @@ struct xcptcontext
 
 /* The resume address and SP of a saved context */
 
+/* The resume address as {bank, 0, pc}: the window word and the code bank */
+
 #define up_getusrpc(regs) \
   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_PC_LO]) | \
-   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_PC_HI] & 0x7f) << 8))
+   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_PC_MID]) << 8) | \
+   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_PC_HI] & 0x7f) << 16))
 
 #define up_getusrsp(regs) \
   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_SP_LO]) | \
-   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_SP_HI]) << 8))
+   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_SP_MID]) << 8) | \
+   ((uintptr_t)(((FAR chipreg_t *)(regs))[XCPT_SP_HI]) << 16))
 
 /* 1 while lisa_doirq runs a handler (arch/lisa/src/common/lisa_irq.c);
  * up_interrupt_context() must be visible wherever arch/irq.h is (errno.h's
@@ -189,7 +188,8 @@ irqstate_t up_irq_enable(void) __naked __nonbanked;
 
 /* The stack pointer (IX) */
 
-uintptr_t  up_getsp(void) __naked __nonbanked;
+FAR void  *lisa_getsp(void) __naked __nonbanked;   /* the stack pointer, in IX (lisa_context.asm) */
+#define up_getsp() ((uintptr_t)lisa_getsp())
 
 #undef EXTERN
 #ifdef __cplusplus

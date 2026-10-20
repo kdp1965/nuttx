@@ -22,7 +22,7 @@
 
 # The toolchain is sdcc -mlisa (lisa-tools/sdcc-lisa, README-lisa.md), built
 # in place: CONFIG_LISA_SDCC_PATH is its build directory (bin/sdcc,
-# share/sdcc/lib/lisa-rev2k), relative to the NuttX top directory unless
+# share/sdcc/lib/lisa-rev3), relative to the NuttX top directory unless
 # absolute.
 
 SDCC_INSTALLDIR := $(patsubst "%",%,$(CONFIG_LISA_SDCC_PATH))
@@ -30,15 +30,22 @@ ifeq ($(filter /%,$(SDCC_INSTALLDIR)),)
   SDCC_INSTALLDIR := $(TOPDIR)/$(SDCC_INSTALLDIR)
 endif
 SDCC_BINDIR = $(SDCC_INSTALLDIR)/bin
-SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/lisa-rev2k
 LISA_TOOLS = $(TOPDIR)/arch/lisa/src/tools
 
-# The second chip (--rev2: its stack convention and banks) in the huge model
-# (--model-huge: every function a banked call unless __nonbanked, data far).
+# The third chip (--rev3: 24-bit IX / SP / RA, 3-byte pointers, a flat 8 MB,
+# the constants packed) in the huge model (--model-huge: every function
+# reached through its 24-bit pointer unless __nonbanked, data far).
 # lisa-sdcc adds the code bank of each source (--codeseg BANKn) from the
 # board's bank map.
 
-ARCHCPUFLAGS = -mlisa --rev2 --pack-const --model-huge
+ifeq ($(CONFIG_LISA_REV3),y)
+  # the third chip: 24-bit pointers, the flat data space (REV3.md)
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/lisa-rev3
+  ARCHCPUFLAGS = -mlisa --rev3 --model-huge
+else
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/lisa-rev2k
+  ARCHCPUFLAGS = -mlisa --rev2 --pack-const --model-huge
+endif
 
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION = --debug

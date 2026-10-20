@@ -53,13 +53,13 @@ void up_dump_register(FAR void *dumpregs)
       return;
     }
 
-  _alert("PC: %02x%02x  CB: %02x  IE: %d  IRQ: %d\n",
-         regs[XCPT_PC_HI] & 0x7f, regs[XCPT_PC_LO], regs[XCPT_CB],
+  _alert("PC: %02x:%02x%02x  IE: %d  IRQ: %d\n",
+         regs[XCPT_PC_HI] & 0x7f, regs[XCPT_PC_MID], regs[XCPT_PC_LO],
          regs[XCPT_IE], regs[XCPT_IRQ]);
-  _alert("SP: %02x%02x  SB: %02x  DB: %02x\n",
-         regs[XCPT_SP_HI], regs[XCPT_SP_LO], regs[XCPT_SB], regs[XCPT_DB]);
-  _alert("A: %02x  IX: %02x%02x  RA: %02x%02x  FLAGS: %02x  CSAVE: %02x\n",
-         regs[XCPT_A], regs[XCPT_IX_HI], regs[XCPT_IX_LO],
-         regs[XCPT_RA_HI], regs[XCPT_RA_LO], regs[XCPT_FLAGS],
-         regs[XCPT_CSAVE]);
+  _alert("SP: %02x%02x%02x\n",
+         regs[XCPT_SP_HI], regs[XCPT_SP_MID], regs[XCPT_SP_LO]);
+  _alert("A: %02x  IX: %02x%02x%02x  RA: %02x:%02x%02x  FLAGS: %02x  CSAVE: %02x\n",
+         regs[XCPT_A], regs[XCPT_IX_HI], regs[XCPT_IX_MID], regs[XCPT_IX_LO],
+         regs[XCPT_RA_HI], regs[XCPT_RA_MID], regs[XCPT_RA_LO],
+         regs[XCPT_FLAGS], regs[XCPT_CSAVE]);
 }

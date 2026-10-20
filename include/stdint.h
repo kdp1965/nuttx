@@ -239,8 +239,18 @@ typedef _uint64_t           uint_fast64_t;
  * machine with 64-bit addressing.
  */
 
+#ifdef ARCH_HAVE_INTPTR_T
+/* An architecture whose pointers are wider than its sizes (a 16-bit size_t
+ * with a 24-bit address space) provides the integers that hold a pointer
+ * itself (arch/.../include/types.h)
+ */
+
+typedef _intptr_t           intptr_t;
+typedef _uintptr_t          uintptr_t;
+#else
 typedef _ssize_t            intptr_t;
 typedef _size_t             uintptr_t;
+#endif
 
 /* Some architectures support a FAR pointer which is larger then the normal
  * (near) pointer

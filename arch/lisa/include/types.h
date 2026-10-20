@@ -90,6 +90,16 @@ typedef int                _wctype_t;
 typedef signed int         _ssize_t;
 typedef unsigned int       _size_t;
 
+/* On the third chip a pointer is 3 bytes (sdcc --rev3: the flat 8 MB data
+ * space): the integer that holds one is a long, while a size stays 2 bytes
+ */
+
+#ifdef CONFIG_LISA_REV3
+#  define ARCH_HAVE_INTPTR_T 1
+typedef signed long        _intptr_t;
+typedef unsigned long      _uintptr_t;
+#endif
+
 /* The interrupt state up_irq_save() returns: the enable bit in a byte */
 
 typedef _uint8_t           irqstate_t;

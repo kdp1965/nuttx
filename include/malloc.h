@@ -63,8 +63,10 @@
 
 struct mallinfo
 {
-#ifdef CONFIG_ARCH_BANKED_TASKS
-  /* The banks add up to more than a 16-bit int holds */
+#if defined(CONFIG_ARCH_BANKED_TASKS) || defined(CONFIG_ARCH_WIDE_HEAP)
+  /* The banks, or the regions of a wide heap, add up to more than a
+   * 16-bit int holds
+   */
 
 #  define MALLINFO_INT long
 #else

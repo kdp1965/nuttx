@@ -10,13 +10,14 @@ choice
 	default ARCH_CHIP_LISA
 
 config ARCH_CHIP_LISA
-	bool "LISA rev 2 (ttsky26d)"
+	bool "LISA rev 3 (ttsky26d twenty-four-bit)"
 	select ARCH_NOINTC
 	select MM_SMALL
 	---help---
-		Ken Pettit's LISA (Little ISA) 8-bit microcontroller, the second
-		chip (ttsky26d-um-lisa-ttlc): 1M words of code in 64 banks, 32K of
-		flat data, built with sdcc -mlisa --rev2 --model-huge.
+		Ken Pettit's LISA (Little ISA) 8-bit microcontroller, the third
+		chip (ttsky26d-um-lisa-ttlc, REV3.md): 2M words of code in 128
+		banks reached through 24-bit code pointers, a flat 8 MB of data,
+		built with sdcc -mlisa --rev3 --model-huge.
 
 endchoice
 

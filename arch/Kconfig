@@ -459,6 +459,16 @@ config ARCH_BANKED_TASKS
 		in that task's bank, and the architecture registers the banks with
 		procfs itself (the user heap is created with noprocfs).
 
+config ARCH_WIDE_HEAP
+	bool
+	default n
+	---help---
+		The heap is larger than size_t counts (a 16-bit size_t on a
+		machine with megabytes of RAM): the heap is made of regions that
+		each fit (CONFIG_MM_REGIONS), and the heap's totals (struct
+		mm_heap_s, struct mallinfo) are long.  Selected by the
+		architecture.
+
 config ARCH_HAVE_EXTRA_HEAPS
 	bool
 	default n

@@ -1026,6 +1026,26 @@ str_lpad:
           int base;
           printf_uint_t x;
 
+          if (c == 'p' && sizeof(FAR void *) != sizeof(unsigned long) &&
+              sizeof(FAR void *) != sizeof(unsigned int))
+            {
+              /* A pointer of a size of its own (3 bytes on the LISA rev 3):
+               * fetched as one, or every argument after it is misread
+               */
+
+#ifdef CONFIG_LIBC_NUMBERED_ARGS
+              if ((flags & FL_ARGNUMBER) != 0)
+                {
+                  x = (printf_uint_t)(uintptr_t)
+                      arglist->value[argnumber - 1].cp;
+                }
+              else
+#endif
+                {
+                  x = (printf_uint_t)(uintptr_t)va_arg(ap, FAR void *);
+                }
+            }
+          else
           if ((flags & FL_LONG) != 0 && (flags & FL_REPD_TYPE) != 0)
             {
 #ifdef CONFIG_LIBC_NUMBERED_ARGS

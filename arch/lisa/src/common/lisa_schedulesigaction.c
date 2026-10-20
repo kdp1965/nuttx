@@ -94,15 +94,16 @@ void up_schedule_sigaction(FAR struct tcb_s *tcb)
   memcpy(regs, tcb->xcp.saved_regs, XCPTCONTEXT_SIZE);
 
   sp = (uintptr_t)regs + XCPTCONTEXT_SIZE;
-  regs[XCPT_SP_LO] = (chipreg_t)sp;
-  regs[XCPT_SP_HI] = (chipreg_t)(sp >> 8);
+  regs[XCPT_SP_LO]  = (chipreg_t)sp;
+  regs[XCPT_SP_MID] = (chipreg_t)(sp >> 8);
+  regs[XCPT_SP_HI]  = (chipreg_t)(sp >> 16);
 
   /* Then set up to vector to the trampoline with interrupts disabled */
 
   entry.fn         = lisa_sigdeliver;
-  regs[XCPT_PC_LO] = entry.b[0];
-  regs[XCPT_PC_HI] = entry.b[1] | 0x80;
-  regs[XCPT_CB]    = entry.b[2];
+  regs[XCPT_PC_LO]  = entry.b[0];
+  regs[XCPT_PC_MID] = entry.b[1];
+  regs[XCPT_PC_HI]  = entry.b[2] | 0x80;
   regs[XCPT_IE]    = 0;
 
   tcb->xcp.regs    = regs;

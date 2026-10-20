@@ -28,35 +28,29 @@
 ;**************************************************************************
 
 	; The register save area (arch/lisa/include/irq.h XCPT_*): the frame
-	; the interrupt entry below pushes, from the last byte pushed up.
-
+	; the interrupt entry below pushes, from the last byte pushed up.  The
+	; third chip (ttsky26d REV3.md): SP, RA, IX and the return address are
+	; 24 bits, three bytes each; a return address carries its code bank.
 	XCPT_SP_LO	== 0
-	XCPT_SP_HI	== 1
-	XCPT_IE		== 2
-	XCPT_SB		== 3
-	XCPT_DB		== 4
-	XCPT_CB		== 5
-	XCPT_PC_HI	== 6
-	XCPT_PC_LO	== 7
-	XCPT_FLAGS	== 8
-	XCPT_CSAVE	== 9
-	XCPT_IRQ	== 10
-	XCPT_RA_HI	== 11
+	XCPT_SP_MID	== 1
+	XCPT_SP_HI	== 2
+	XCPT_IE		== 3
+	XCPT_PC_HI	== 4
+	XCPT_PC_MID	== 5
+	XCPT_PC_LO	== 6
+	XCPT_FLAGS	== 7
+	XCPT_CSAVE	== 8
+	XCPT_IRQ	== 9
+	XCPT_RA_HI	== 10
+	XCPT_RA_MID	== 11
 	XCPT_RA_LO	== 12
 	XCPT_IX_HI	== 13
-	XCPT_IX_LO	== 14
-	XCPT_A		== 15
-	XCPT_SIZE	== 16
-
-	; The bank registers (direct peripheral addresses)
-
-	LISA_CB		== 0x215
-	LISA_KB		== 0x21f		; the constant bank: lda (ix++) reads from it (RESPIN 26)
-	LISA_DB		== 0x216
-	LISA_SB		== 0x217
+	XCPT_IX_MID	== 14
+	XCPT_IX_LO	== 15
+	XCPT_A		== 16
+	XCPT_SIZE	== 17
 
 	; CONFIG_STACK_END, CONFIG_STACK_BASE from the Makefile
-
 	.include	"asm_mem.h"
 
 ;**************************************************************************
@@ -64,19 +58,17 @@
 ;**************************************************************************
 
 	.globl	_nx_start		; OS entry point
-	.globl	b_nx_start		; .. and its code bank
 	.globl	_lisa_doirq		; Interrupt decoding logic
 	.globl	_lisa_restore		; Resume a saved context (lisa_context.asm)
 	.globl	_g_lisa_ie		; The interrupt enable state
 
-;**************************************************************************
 ; The link order of the areas: the head is the first object, so its order
 ; is the layout.  Code: the vectors first (HOME at 0), then the common code,
 ; the constants and the initializers (all below word 0x4000, where every
 ; code bank sees them); the banks BANKn are placed by the link script.
 ; Data: from 0, DATA (the direct 512 bytes) first, the heap after the last
-; area, the idle thread's stack at the top of RAM.
-;**************************************************************************
+; area, the idle thread's stack at the top of RAM - a flat 8 MB on the
+; third chip.
 
 	.area	HOME (CODE)
 	.area	GSINIT (CODE)
@@ -84,9 +76,8 @@
 	.area	CODE (CODE)
 	.area	CONST (CODE,KDATA)		; packed constants (sdcc --pack-const): this
 	.area	INITIALIZER (CODE,KDATA)	; module is linked first, so its flags are
-	.area	FINITIALIZER (CODE,KDATA)	; the areas' - the linker reads them as bytes
-	.area	CABS (ABS,CODE,KDATA)		; in bank k_CONST, through lda (ix++)
-
+	.area	FINITIALIZER (CODE,KDATA)	; the areas' - the linker reads them as bytes,
+	.area	CABS (ABS,CODE,KDATA)		; lda (ix++) from the pointer's own bank
 	.area	DATA
 	.area	OSEG (OVR,DATA)
 	.area	INITIALIZED
@@ -158,143 +149,115 @@ _lisa_irq8:
 ;**************************************************************************
 ; Reset: the stack at the top of RAM, the arithmetic mode the compiler
 ; assumes, the data areas cleared and initialized the way sdcc's own
-; startup does it (the initial values are bytes packed two to a code word
-; in the bank KB, read with lda (ix++): sdcc --pack-const, RESPIN 26),
-; then KB on the program's constants and nx_start in its code bank.
+; startup does it (the initial values are bytes packed two to a code word,
+; read with lda (ix++) from the bank the pointer names), then nx_start
+; through its 24-bit pointer, which carries its code bank.
+; The frame of the loops: 0..2(sp) a destination pointer, 3..4(sp) a count.
 ;**************************************************************************
 
 _lisa_reset:
-	ldx	#CONFIG_STACK_END
+	ldxf	#CONFIG_STACK_END
 	xchg	sp
 	amode	1
-	ldi	#1			; the banks as after a hardware reset (a jump
-	sta	LISA_CB			; to 0 from running code keeps them)
-	sta	LISA_DB
-	sta	LISA_SB
-
-	; Zero DATA: IX = s_DATA, the count l_DATA in the two bytes on top
-	; of the stack, counting down
-
+	ads	#-5
+	; Zero DATA: IX = s_DATA (near), the count l_DATA counting down
 	ldi	#>l_DATA
-	push	a
+	stax	4(sp)
 	ldi	#<l_DATA
-	push	a
+	stax	3(sp)
 	ldx	#s_DATA
 1$:
-	ldax	0(sp)
-	or	1(sp)
+	ldax	3(sp)
+	or	4(sp)
 	bz	2$
 	ldi	#0
 	stax	0(ix)
 	adx	#1
-	dcx	0(sp)
+	dcx	3(sp)
 	if	c
-	dcx	1(sp)
+	dcx	4(sp)
 	br	1$
 2$:
-	; Zero FDATA the same way
-
+	; Zero FDATA the same way (anywhere in the 8 MB: ldxf)
 	ldi	#>l_FDATA
-	stax	1(sp)
+	stax	4(sp)
 	ldi	#<l_FDATA
-	stax	0(sp)
-	ldx	#s_FDATA
+	stax	3(sp)
+	ldxf	#s_FDATA
 3$:
-	ldax	0(sp)
-	or	1(sp)
+	ldax	3(sp)
+	or	4(sp)
 	bz	4$
 	ldi	#0
 	stax	0(ix)
 	adx	#1
-	dcx	0(sp)
+	dcx	3(sp)
 	if	c
-	dcx	1(sp)
+	dcx	4(sp)
 	br	3$
 4$:
-	; Copy INITIALIZER -> INITIALIZED: the source in IX (code space, call
-	; ix reads a byte), the destination in 1(sp):0(sp), the count in
-	; 3(sp):2(sp)
-
-	ldi	#>s_INITIALIZED
-	push	a
-	ldi	#<s_INITIALIZED
-	push	a
+	; Copy INITIALIZER -> INITIALIZED: the source in IX (lda (ix++) reads
+	; a byte of its bank), the destination pointer at 0..2(sp), swapped
+	; through IX, the count at 3..4(sp)
+	ldxf	#s_INITIALIZED
+	stxx	0(sp)
 	ldi	#>l_INITIALIZED
-	stax	3(sp)
+	stax	4(sp)
 	ldi	#<l_INITIALIZED
-	stax	2(sp)
-	ldi	#k_INITIALIZER		; the bank the packed values are in
-	sta	LISA_KB
-	ldx	#s_INITIALIZER
+	stax	3(sp)
+	ldxf	#s_INITIALIZER
 5$:
-	ldax	2(sp)
-	or	3(sp)
+	ldax	3(sp)
+	or	4(sp)
 	bz	6$
 	lda	(ix++)
-	push	ix
-	ldxx	2(sp)
+	push	ix			; the slots are 3 deeper
+	ldxx	3(sp)
 	stax	0(ix)
-	inx	2(sp)
-	if	c
-	inx	3(sp)
+	adx	#1
+	stxx	3(sp)
 	pop	ix
-	dcx	2(sp)
-	if	c
 	dcx	3(sp)
+	if	c
+	dcx	4(sp)
 	br	5$
 6$:
 	; The same for FINITIALIZER -> FINITIALIZED
-
-	ldi	#>s_FINITIALIZED
-	stax	1(sp)
-	ldi	#<s_FINITIALIZED
-	stax	0(sp)
+	ldxf	#s_FINITIALIZED
+	stxx	0(sp)
 	ldi	#>l_FINITIALIZED
-	stax	3(sp)
+	stax	4(sp)
 	ldi	#<l_FINITIALIZED
-	stax	2(sp)
-	ldi	#k_FINITIALIZER
-	sta	LISA_KB
-	ldx	#s_FINITIALIZER
+	stax	3(sp)
+	ldxf	#s_FINITIALIZER
 7$:
-	ldax	2(sp)
-	or	3(sp)
+	ldax	3(sp)
+	or	4(sp)
 	bz	8$
 	lda	(ix++)
 	push	ix
-	ldxx	2(sp)
+	ldxx	3(sp)
 	stax	0(ix)
-	inx	2(sp)
-	if	c
-	inx	3(sp)
+	adx	#1
+	stxx	3(sp)
 	pop	ix
-	dcx	2(sp)
-	if	c
 	dcx	3(sp)
+	if	c
+	dcx	4(sp)
 	br	7$
 8$:
-	ads	#4
-
-	; the program's constants: KB stays on their bank (one per image, so
-	; no frame carries it)
-	ldi	#k_CONST
-	sta	LISA_KB
-
-	; nx_start, a banked function entered directly: its code bank first
-	; (a write to CB takes effect at the next fetch from the window)
-
-	ldi	#b_nx_start
-	sta	LISA_CB
-	jal	_nx_start
-
+	ads	#5
+	; nx_start, in whatever code bank the link put it: call ix switches
+	ldxf	#_nx_start
+	call	ix
 _lisa_halt::
 	br	_lisa_halt
 
 ;**************************************************************************
 ; The common interrupt entry: A = the vector, 0(sp) = the interrupted A.
 ; Saves what the hardware does not - IX, RA, the cflag_save shadow - plus
-; the ISR flag shadows (restored by rets), the return address (IA), the
-; three bank registers and the interrupt enable state, computes the
+; the ISR flag shadows (restored by rets), the return address (IA, with the
+; interrupted code bank) and the interrupt enable state, computes the
 ; interrupted SP, and hands the frame to lisa_doirq(irq, regs), which
 ; returns the frame to resume (another task's after a context switch).
 ;**************************************************************************
@@ -309,36 +272,31 @@ _lisa_irqcommon:
 	ldirq
 	push	a			; XCPT_FLAGS
 	xchg	ia
-	push	ix			; XCPT_PC: the return address
-	lda	LISA_CB
-	push	a			; XCPT_CB
-	lda	LISA_DB
-	push	a			; XCPT_DB
-	lda	LISA_SB
-	push	a			; XCPT_SB
+	push	ix			; XCPT_PC: the return address, its bank with it
 	lda	_g_lisa_ie
 	push	a			; XCPT_IE (1: an interrupt needs them enabled)
 	ldi	#0
 	sta	_g_lisa_ie
-	spix				; the interrupted SP = this SP + 14
+	spix
+	adx	#14			; the interrupted SP = this SP + 14
+	txah
+	andi	#0x7f			; without the condition bit spix leaves in IX
+	push	a			; XCPT_SP_HI
+	txau
+	push	a			; XCPT_SP_MID
 	txa
-	ldc	#0
-	adc	#14
+	push	a			; XCPT_SP_LO
+	spix				; IX = the frame
+	txah
+	andi	#0x7f			; a data pointer: bit 23 would mean code space
 	push	a
 	txau
-	adc	#0
-	andi	#0x7f			; without the condition bit spix leaves in IX
-	swap	0(sp)
-	push	a			; XCPT_SP
-	spix				; IX = the frame
-	txau
-	andi	#0x7f			; a data pointer: bit 15 would mean code space
 	push	a
 	txa
 	push	a			; the regs argument (low byte first)
-	ldax	12(sp)			; A = the irq (XCPT_IRQ + 2)
+	ldax	12(sp)			; A = the irq (XCPT_IRQ + 3)
 	jal	_lisa_doirq		; IX = the frame to resume
-	ads	#2
+	ads	#3
 	jal	_lisa_restore
 
 	.area	HEAP

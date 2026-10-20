@@ -49,6 +49,12 @@ void up_initialize(void)
 {
 #ifdef CONFIG_LISA_TASK_BANKS
   lisa_bank_initialize();
+#elif CONFIG_MM_REGIONS > 1
+  /* The rest of the RAM into the kernel heap, 64 KB at a time (the first
+   * region went to nx_start from up_allocate_heap)
+   */
+
+  lisa_addregions();
 #endif
 
   /* Initialize the serial device driver */

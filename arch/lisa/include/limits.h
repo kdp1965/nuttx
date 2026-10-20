@@ -60,11 +60,18 @@
 #define LLONG_MAX   9223372036854775807LL
 #define ULLONG_MAX  18446744073709551615ULL
 
-/* A pointer is 2 bytes */
+/* A pointer is 2 bytes; 3 on the third chip, where intptr_t is a long
+ * (types.h)
+ */
 
 #define PTR_MIN     (-PTR_MAX - 1)
-#define PTR_MAX     32767
-#define UPTR_MAX    65535U
+#ifdef CONFIG_LISA_REV3
+#  define PTR_MAX   2147483647L
+#  define UPTR_MAX  4294967295UL
+#else
+#  define PTR_MAX   32767
+#  define UPTR_MAX  65535U
+#endif
 
 #if !defined(__WCHAR_TYPE__)
 #  define WCHAR_MIN INT_MIN
