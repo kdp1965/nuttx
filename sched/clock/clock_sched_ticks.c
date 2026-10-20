@@ -117,7 +117,10 @@ void clock_increase_sched_ticks(clock_t ticks)
 clock_t clock_get_sched_ticks(void)
 {
   clock_t ret;
-  unsigned int seq;
+  uint32_t seq;   /* the sequence's own width: an int narrower than it (16
+                   * bits on sdcc) would never match once the sequence
+                   * passes 65535 - 655 seconds of ticks - and this would
+                   * spin for ever inside the timer interrupt */
 
   do
     {
