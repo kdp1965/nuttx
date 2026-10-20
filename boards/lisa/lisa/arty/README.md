@@ -1,10 +1,15 @@
-# NuttX on LISA (the second chip, on the Arty A7 and on lisa_sim)
+# NuttX on LISA (the Arty A7, lisa_sim, the chip testbench)
 
-The LISA port runs Apache NuttX on Ken Pettit's LISA 8-bit microcontroller,
-the second chip (`ttsky26d-um-lisa-ttlc`): its RTL on the Digilent Arty A7
-at 50 MHz, or `lisa_sim --rev2`.  It is the proof of the chip's code banks
-(RESPIN item 22): 1M words of code in 64 banks of 16K words behind a
-16K-word window, 32K of data.
+The LISA port runs Apache NuttX on Ken Pettit's LISA 8-bit microcontroller:
+on branch `lisa` the second chip (`ttsky26d-um-lisa-ttlc` main, `lisa_sim
+--rev2`), the proof of its code banks (RESPIN item 22: 1M words of code in
+64 banks of 16K words behind a 16K-word window) and of its task banks on the
+24K data map (RESPIN 28); on branch `twenty-four-bit` the third chip
+(`ttsky26d-um-lisa-ttlc` twenty-four-bit, `REV3.md`, `lisa_sim --rev3`):
+24-bit IX, SP and return addresses, a flat 8 MB of data, no banking - the
+flat kernel described at the end.  The RTL runs on the Digilent Arty A7 at
+50 MHz.  The sections up to the UART interrupts describe the second chip's
+port; the third chip's differs where the last section says.
 
 ## Toolchain
 
@@ -79,3 +84,44 @@ receive interrupt and feeds the transmitter when it enables the transmit one,
 which is what the level does in hardware, so it also runs on an RTL that
 latches the edges (the RTL before 2026-10-18, which in fact could not write
 the enables at all).  `lisa_sim --rev2` models the levels.
+
+## The third chip: the flat kernel (branch `twenty-four-bit`)
+
+`CONFIG_LISA_REV3` (default y on this branch; `LISA_TASK_BANKS` is the
+second chip's and depends on its absence) builds with `sdcc -mlisa --rev3
+--model-huge` against `lib/lisa-rev3`: pointers are 3 bytes (a `__near` one
+2, the first 64K), a call to another bank is `ldxf #f; call ix` (no
+trampoline, no bank bytes in the frame), `jal` within a translation unit or
+to a `__nonbanked` function.  The register frame (`irq.h`, 17 bytes) holds
+SP, PC, RA and IX as three bytes each, the code bank in the top byte of a
+return address: `push ix` / `sra` put that byte at the lowest address, so
+`XCPT_PC_HI` is offset 4 and `XCPT_PC_LO` 6, and `lisa_switchcontext`
+pushes the PC bytes low byte first to lay its frame out the same way.
+`ret` / `rets` restore the bank from the address: no bank register is saved.
+The reset clears and copies the data areas with 24-bit pointers (`ldxf`,
+`lda (ix++)` from the initializer's own bank) and enters `nx_start`
+through its pointer.
+
+The data space is flat: `CONFIG_RAM_SIZE` 8388352, the idle thread's stack
+at the top, one kernel heap from the end of the data areas
+(`lisa_heapbase`) to it.  `size_t` stays 16 bits, so the heap is made of
+regions of 0xfff0 bytes: `up_allocate_heap` hands `nx_start` the first,
+`lisa_addregions` (from `up_initialize`, once the heap exists) adds the
+rest with `kmm_addregion` - `CONFIG_MM_REGIONS` 130 covers the 8 MB - and
+the heap's totals are `long` (`ARCH_WIDE_HEAP`: `mm_heap_s`'s sizes,
+`struct mallinfo`).  `intptr_t` / `uintptr_t` are `long` on this chip
+(`arch/lisa/include/types.h` defines `_intptr_t` and `ARCH_HAVE_INTPTR_T`,
+which `include/stdint.h` takes): the memory manager's alignment arithmetic
+and the stack-top computations need the whole address.  `vsprintf` reads a
+`%p` argument as a pointer when its size is neither `int`'s nor `long`'s.
+
+    make -j8
+    ../lisa-tools/lisa_sim/lisa_sim --rev3 -b -c 6000000 nuttx.ihx   # the banner and the prompt
+    # interactive: a pty pair (socat) with lisa_sim --rev3 -p on one end
+
+`free` reports 8385208 bytes in 129 regions; `bigtest 1 30000 &` tasks get
+their stacks and buffers in the regions above 64K.  After a compiler change
+delete the objects that `make clean` keeps (`find libs/libc/bin mm/bin
+-name '*.rel' -delete`): make rebuilds them only when their source is
+newer, and an object compiled with an older frame layout misreads its
+arguments.
