@@ -63,6 +63,10 @@
 #define LISA_TIM2_CTRL        0x21c
 #define LISA_TIM2_TICK        0x21d
 #define LISA_UART2_BRG        0x21e
+#define LISA_SPI_DATA         0x228   /* write: send a byte (ignored while busy); read: the byte received */
+#define LISA_SPI_CTRL         0x229   /* LISA_SPI_CTRL_* bits */
+#define LISA_SPI_DIV          0x22a   /* half an SCLK period is DIV + 1 clocks */
+#define LISA_SPI_STATUS       0x22b   /* LISA_SPI_ST_* bits */
 
 #define LISA_UART_RX_AVAIL    0x01
 #define LISA_UART_TX_EMPTY    0x02
@@ -72,5 +76,20 @@
 #define LISA_UART1_TX_IE      0x02
 #define LISA_UART2_RX_IE      0x04
 #define LISA_UART2_TX_IE      0x08
+
+/* The SPI master (ttsky26d RESPIN 29): CTRL and STATUS bits */
+
+#define LISA_SPI_CTRL_CS0     0x01    /* select 0 asserted (the pin low) */
+#define LISA_SPI_CTRL_CS1     0x02
+#define LISA_SPI_CTRL_CPOL    0x04
+#define LISA_SPI_CTRL_CPHA    0x08
+#define LISA_SPI_CTRL_CLAIM   0x10    /* ask for the TTLC's pins (mux 3) */
+#define LISA_SPI_CTRL_MISO_SHIFT 5    /* MISO from ui_in[0], [1], [2] or [7] */
+#define LISA_SPI_CTRL_IE      0x80    /* DONE requests an interrupt */
+
+#define LISA_SPI_ST_BUSY      0x01
+#define LISA_SPI_ST_DONE      0x02
+#define LISA_SPI_ST_OWNED     0x04
+#define LISA_SPI_ST_TTLC_WAIT 0x08
 
 #endif /* __ARCH_LISA_INCLUDE_LISA_CHIP_H */

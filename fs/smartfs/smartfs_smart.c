@@ -2131,9 +2131,12 @@ static void smartfs_stat_common(FAR struct smartfs_mountpt_s *fs,
     }
   else
     {
-      /* Mask out the file type */
+      /* The permission bits only: the entry's reserved bits (0x0e00) are
+       * left erased, so all ones, and would read as setuid, setgid and
+       * sticky
+       */
 
-      buf->st_mode = entry->flags & ~S_IFMT;
+      buf->st_mode = entry->flags & SMARTFS_DIRENT_MODE;
 
       /* Add the file type based on the SmartFS entry flags */
 

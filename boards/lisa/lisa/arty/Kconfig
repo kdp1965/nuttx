@@ -4,4 +4,21 @@
 #
 
 if ARCH_BOARD_LISA_ARTY
+
+config ARTY_SPIFLASH
+	bool "SPI flash with smartfs"
+	default n
+	depends on LISA_SPI && MTD_SST25XX && MTD_SMART && FS_SMARTFS
+	---help---
+		An SST25VF064C on the SPI master's CS0 (Pmod JB3 = uo[3] CS0, JB5
+		= uo[5] SCLK, JB6 = uo[6] MOSI, JA0 = ui_in[0] MISO; the host sets
+		the uo_out mux, debug register 0x1b = 0x2880): board_late_initialize
+		registers it as an MTD device, SMART over it as /dev/smart0 and
+		mounts smartfs at ARTY_SPIFLASH_MOUNT.
+
+config ARTY_SPIFLASH_MOUNT
+	string "smartfs mount point"
+	default "/mnt/flash"
+	depends on ARTY_SPIFLASH
+
 endif

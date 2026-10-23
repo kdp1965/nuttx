@@ -203,6 +203,13 @@ void lisa_serial_initialize(void);
 #  define lisa_serial_initialize()
 #endif
 
+/* The SPI master (lisa_spi.c): bus 0, the only one */
+
+#ifdef CONFIG_LISA_SPI
+struct spi_dev_s;
+FAR struct spi_dev_s *lisa_spibus_initialize(int bus);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

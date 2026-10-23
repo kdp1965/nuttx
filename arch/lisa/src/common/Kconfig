@@ -4,4 +4,27 @@
 #
 
 if ARCH_LISA
+
+config LISA_SPI
+	bool "SPI master"
+	default n
+	select SPI
+	---help---
+		The third chip's SPI master (ttsky26d RESPIN 29, peripheral
+		0x228-0x22B) as SPI bus 0 (lisa_spibus_initialize(0)): a byte at a
+		time, polled, modes 0-3, the clock clk / (2 (DIV + 1)).  The
+		select is the device id's index: SPIDEV_xxx(0) is CS0, (1) CS1.
+		The pins come from the uo_out mux (debug register 0x1b, set by the
+		host: 0x2880 puts CS0 / SCLK / MOSI on uo[3] / uo[5] / uo[6], CS1
+		is uo[7] under mux 0) and MISO from the input LISA_SPI_MISO names.
+
+if LISA_SPI
+
+config LISA_SPI_MISO
+	int "MISO input: 0 = ui_in[0], 1 = ui_in[1], 2 = ui_in[2], 3 = ui_in[7]"
+	default 0
+	range 0 3
+
+endif # LISA_SPI
+
 endif
