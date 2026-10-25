@@ -46,8 +46,10 @@
 #endif
 
 #ifdef CONFIG_ARTY_LCD_BACKPACK
+#  include <fcntl.h>
 #  include <syslog.h>
 #  include <nuttx/lcd/pcf8574_lcd_backpack.h>
+#  include <nuttx/lcd/slcd_ioctl.h>
 #endif
 
 #include "lisa_internal.h"
@@ -203,6 +205,7 @@ void board_late_initialize(void)
 
     static struct pcf8574_lcd_backpack_config_s cfg =
       LCD_I2C_BACKPACK_CFG_SAINSMART;
+    struct file f;
     int r;
 
     cfg.addr = CONFIG_ARTY_LCD_BACKPACK_ADDR;
@@ -216,6 +219,18 @@ void board_late_initialize(void)
       }
     else
       {
+        /* The driver starts with the backlight off (unless the LCD is
+         * the console): on, so the display can be read
+         */
+
+        if (file_open(&f, "/dev/slcd0", O_WRONLY) >= 0)
+          {
+            /* the argument is read as an unsigned long */
+
+            file_ioctl(&f, SLCDIOC_SETBRIGHTNESS, (unsigned long)1);
+            file_close(&f);
+          }
+
         syslog(LOG_INFO, "slcd: %dx%d LCD at 0x%02x as /dev/slcd0\n",
                cfg.cols, cfg.rows, cfg.addr);
       }

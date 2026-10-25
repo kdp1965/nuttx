@@ -72,7 +72,14 @@
 
 	.area	HOME (CODE)
 	.area	GSINIT (CODE)
+	; sdcc's static initializations: the stores of a function's static
+	; with an initializer (sdcc emits those as code, not as INITIALIZER
+	; bytes) from every module, run by the reset; GSFINAL returns there
+	; by a jump - an initialization may call a function, so RA is not kept
+_lisa_gsinit::
 	.area	GSFINAL (CODE)
+	ldxf	#_lisa_gsinit_done
+	jmp	ix
 	.area	CODE (CODE)
 	.area	CONST (CODE,KDATA)		; packed constants (sdcc --pack-const): this
 	.area	INITIALIZER (CODE,KDATA)	; module is linked first, so its flags are
@@ -150,7 +157,9 @@ _lisa_irq8:
 ; Reset: the stack at the top of RAM, the arithmetic mode the compiler
 ; assumes, the data areas cleared and initialized the way sdcc's own
 ; startup does it (the initial values are bytes packed two to a code word,
-; read with lda (ix++) from the bank the pointer names), then nx_start
+; read with lda (ix++) from the bank the pointer names), GSINIT run (until
+; 2026-10-25 it was not: a function's initialized static, which sdcc
+; initializes there, started as zeros), then nx_start
 ; through its 24-bit pointer, which carries its code bank.
 ; The frame of the loops: 0..2(sp) a destination pointer, 3..4(sp) a count.
 ;**************************************************************************
@@ -247,6 +256,10 @@ _lisa_reset:
 	br	7$
 8$:
 	ads	#5
+	; GSINIT (above), then on here
+	ldxf	#_lisa_gsinit
+	jmp	ix
+_lisa_gsinit_done::
 	; nx_start, in whatever code bank the link put it: call ix switches
 	ldxf	#_nx_start
 	call	ix
