@@ -36,6 +36,10 @@
 #  include <syslog.h>
 #endif
 
+#if defined(CONFIG_LISA_I2C) && defined(CONFIG_I2C_DRIVER)
+#  include <nuttx/i2c/i2c_master.h>
+#endif
+
 #ifdef CONFIG_ARTY_OLED
 #  include <errno.h>
 #  include <syslog.h>
@@ -237,10 +241,11 @@ void board_late_initialize(void)
   }
 #endif
 
-#ifdef CONFIG_ARTY_OLED
-#  ifdef CONFIG_I2C_DRIVER
+#if defined(CONFIG_LISA_I2C) && defined(CONFIG_I2C_DRIVER)
   i2c_register(lisa_i2cbus_initialize(0), 0);       /* /dev/i2c0: i2ctool */
-#  endif
+#endif
+
+#ifdef CONFIG_ARTY_OLED
 #  ifdef CONFIG_VIDEO_FB
   if (fb_register(0, 0) < 0)                        /* /dev/fb0 */
     {
