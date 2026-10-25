@@ -16,6 +16,49 @@ config ARTY_SPIFLASH
 		registers it as an MTD device, SMART over it as /dev/smart0 and
 		mounts smartfs at ARTY_SPIFLASH_MOUNT.
 
+config ARTY_OLED
+	bool "SSD1309 128x64 I2C OLED"
+	default n
+	depends on LISA_I2C && LCD_SSD1306_I2C
+	---help---
+		An SSD1309 OLED on the I2C master in io mux mode 3 (the host sets
+		debug register 0x1c = 0x00fa: arty_term.py M3=1; the Arty's SW2 up
+		puts SCL / SDA on JD pins 1 / 2): board_lcd_initialize brings up
+		the SSD1306 driver on I2C bus 0, board_late_initialize registers
+		/dev/fb0 (VIDEO_FB with LCD_FRAMEBUFFER) and /dev/i2c0
+		(I2C_DRIVER).
+
+config ARTY_LCD_BACKPACK
+	bool "HD44780 character LCD on a PCF8574 I2C backpack"
+	default n
+	depends on LISA_I2C && LCD_BACKPACK
+	---help---
+		A character LCD (20x4 by default) on a PCF8574 backpack on I2C
+		bus 0, in io mux mode 3 (the host sets debug register 0x1c =
+		0x00fa: arty_term.py M3=1; the Arty's SW2 up puts SCL / SDA on JD
+		pins 1 / 2): board_late_initialize registers /dev/slcd0 with the
+		YwRobot / SainSmart pin mapping (P0 RS, P1 RW, P2 E, P3 the
+		backlight, P4-P7 D4-D7).  Mind the backpack's pull-ups: at 5 V they
+		pull SDA / SCL to 5 V; power it from 3.3 V or remove them.
+
+if ARTY_LCD_BACKPACK
+
+config ARTY_LCD_BACKPACK_ADDR
+	hex "The backpack's 7-bit I2C address"
+	default 0x27
+	---help---
+		0x20-0x27 for a PCF8574, 0x38-0x3f for a PCF8574A.
+
+config ARTY_LCD_BACKPACK_ROWS
+	int "Rows"
+	default 4
+
+config ARTY_LCD_BACKPACK_COLS
+	int "Columns"
+	default 20
+
+endif
+
 config ARTY_SPIFLASH_MOUNT
 	string "smartfs mount point"
 	default "/mnt/flash"

@@ -36,7 +36,29 @@
 #  include <syslog.h>
 #endif
 
+#ifdef CONFIG_ARTY_OLED
+#  include <errno.h>
+#  include <syslog.h>
+#  include <nuttx/i2c/i2c_master.h>
+#  include <nuttx/lcd/lcd.h>
+#  include <nuttx/lcd/ssd1306.h>
+#  include <nuttx/video/fb.h>
+#endif
+
+#ifdef CONFIG_ARTY_LCD_BACKPACK
+#  include <syslog.h>
+#  include <nuttx/lcd/pcf8574_lcd_backpack.h>
+#endif
+
 #include "lisa_internal.h"
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_ARTY_OLED
+static FAR struct lcd_dev_s *g_oled;
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -93,6 +115,61 @@ static void arty_spiflash(void)
  * Public Functions
  ****************************************************************************/
 
+#ifdef CONFIG_ARTY_OLED
+/****************************************************************************
+ * Name: board_lcd_initialize / board_lcd_getdev / board_lcd_uninitialize
+ *
+ * Description:
+ *   The SSD1309 128x64 OLED on I2C bus 0 (io mux mode 3: SCL / SDA on
+ *   uio[4] / uio[5], the Arty's JD pins 1 / 2 with SW2 up) through the
+ *   SSD1306 driver; the LCD framebuffer (/dev/fb0) calls these.
+ *
+ ****************************************************************************/
+
+int board_lcd_initialize(void)
+{
+  FAR struct i2c_master_s *i2c;
+
+  if (g_oled != NULL)
+    {
+      return OK;
+    }
+
+  i2c = lisa_i2cbus_initialize(0);
+  if (i2c == NULL)
+    {
+      syslog(LOG_ERR, "oled: no I2C bus 0\n");
+      return -ENODEV;
+    }
+
+  g_oled = ssd1306_initialize(i2c, NULL, 0);
+  if (g_oled == NULL)
+    {
+      syslog(LOG_ERR, "oled: no SSD1306 / SSD1309 at 0x%02x\n",
+             CONFIG_SSD1306_I2CADDR);
+      return -ENODEV;
+    }
+
+  g_oled->setpower(g_oled, CONFIG_LCD_MAXPOWER);
+  syslog(LOG_INFO, "oled: SSD1309 at 0x%02x on I2C bus 0\n",
+         CONFIG_SSD1306_I2CADDR);
+  return OK;
+}
+
+FAR struct lcd_dev_s *board_lcd_getdev(int devno)
+{
+  return devno == 0 ? g_oled : NULL;
+}
+
+void board_lcd_uninitialize(void)
+{
+  if (g_oled != NULL)
+    {
+      g_oled->setpower(g_oled, 0);
+    }
+}
+#endif
+
 /****************************************************************************
  * Name: board_late_initialize
  *
@@ -116,6 +193,47 @@ void board_late_initialize(void)
 
 #ifdef CONFIG_ARTY_SPIFLASH
   arty_spiflash();
+#endif
+
+#ifdef CONFIG_ARTY_LCD_BACKPACK
+  {
+    /* YwRobot / SainSmart: P0 RS, P1 RW, P2 E, P3 backlight (high on),
+     * P4-P7 D4-D7
+     */
+
+    static struct pcf8574_lcd_backpack_config_s cfg =
+      LCD_I2C_BACKPACK_CFG_SAINSMART;
+    int r;
+
+    cfg.addr = CONFIG_ARTY_LCD_BACKPACK_ADDR;
+    cfg.rows = CONFIG_ARTY_LCD_BACKPACK_ROWS;
+    cfg.cols = CONFIG_ARTY_LCD_BACKPACK_COLS;
+    r = pcf8574_lcd_backpack_register("/dev/slcd0",
+                                      lisa_i2cbus_initialize(0), &cfg);
+    if (r < 0)
+      {
+        syslog(LOG_ERR, "slcd: no backpack at 0x%02x (%d)\n", cfg.addr, r);
+      }
+    else
+      {
+        syslog(LOG_INFO, "slcd: %dx%d LCD at 0x%02x as /dev/slcd0\n",
+               cfg.cols, cfg.rows, cfg.addr);
+      }
+  }
+#endif
+
+#ifdef CONFIG_ARTY_OLED
+#  ifdef CONFIG_I2C_DRIVER
+  i2c_register(lisa_i2cbus_initialize(0), 0);       /* /dev/i2c0: i2ctool */
+#  endif
+#  ifdef CONFIG_VIDEO_FB
+  if (fb_register(0, 0) < 0)                        /* /dev/fb0 */
+    {
+      syslog(LOG_ERR, "oled: no framebuffer\n");
+    }
+#  else
+  board_lcd_initialize();
+#  endif
 #endif
 }
 #endif

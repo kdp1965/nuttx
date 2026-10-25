@@ -31,6 +31,10 @@ ifneq ($(filter y,$(CONFIG_LISA_TASK_BANKS) $(CONFIG_LISA_SCHED_TRACE)),)
 CMN_CSRCS += lisa_banks.c
 endif
 
+ifeq ($(CONFIG_LISA_I2C),y)
+CMN_CSRCS += lisa_i2c.c
+endif
+
 ifeq ($(CONFIG_LISA_SPI),y)
 CMN_CSRCS += lisa_spi.c
 endif

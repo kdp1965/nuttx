@@ -63,6 +63,13 @@
 #define LISA_TIM2_CTRL        0x21c
 #define LISA_TIM2_TICK        0x21d
 #define LISA_UART2_BRG        0x21e
+#define LISA_I2C_PRE_LO       0x220   /* SCL = clk / (5 (PRE + 1)), written with EN clear */
+#define LISA_I2C_PRE_HI       0x221
+#define LISA_I2C_CTRL         0x222   /* LISA_I2C_CTRL_* bits */
+#define LISA_I2C_RX           0x223   /* the last byte received */
+#define LISA_I2C_STATUS       0x224   /* LISA_I2C_ST_* bits */
+#define LISA_I2C_TX           0x225   /* the byte to send: an address + R/W, or data */
+#define LISA_I2C_CMD          0x226   /* LISA_I2C_CMD_* bits: a byte on the bus */
 #define LISA_SPI_DATA         0x228   /* write: send a byte (ignored while busy); read: the byte received */
 #define LISA_SPI_CTRL         0x229   /* LISA_SPI_CTRL_* bits */
 #define LISA_SPI_DIV          0x22a   /* half an SCLK period is DIV + 1 clocks */
@@ -91,5 +98,22 @@
 #define LISA_SPI_ST_DONE      0x02
 #define LISA_SPI_ST_OWNED     0x04
 #define LISA_SPI_ST_TTLC_WAIT 0x08
+
+/* The I2C master (the OpenCores byte and bit controllers) */
+
+#define LISA_I2C_CTRL_EN      0x01    /* the only bit */
+
+#define LISA_I2C_ST_IF        0x01
+#define LISA_I2C_ST_TIP       0x02    /* a byte in progress */
+#define LISA_I2C_ST_AL        0x20    /* arbitration lost */
+#define LISA_I2C_ST_BUSY      0x40    /* between a start and a stop */
+#define LISA_I2C_ST_RXACK     0x80    /* the last byte written was not acknowledged */
+
+#define LISA_I2C_CMD_IACK     0x01
+#define LISA_I2C_CMD_ACK      0x08    /* with RD: NAK the byte (the last of a read) */
+#define LISA_I2C_CMD_WR       0x10
+#define LISA_I2C_CMD_RD       0x20
+#define LISA_I2C_CMD_STO      0x40
+#define LISA_I2C_CMD_STA      0x80
 
 #endif /* __ARCH_LISA_INCLUDE_LISA_CHIP_H */

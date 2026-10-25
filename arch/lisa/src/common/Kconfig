@@ -27,4 +27,16 @@ config LISA_SPI_MISO
 
 endif # LISA_SPI
 
+config LISA_I2C
+	bool "I2C master"
+	default n
+	select I2C
+	---help---
+		The chip's I2C master (ttsky26d src/lisa_i2c.v, peripheral
+		0x220-0x226) as I2C bus 0 (lisa_i2cbus_initialize(0)): a byte at a
+		time, polled, repeated starts between messages, 7-bit addresses.
+		The pins come from the uio mux (debug register 0x1c, set by the
+		host: 0x00fa is io mux mode 3 with SCL / SDA on uio[4] / uio[5],
+		the Arty's JD pins 1 / 2 with SW2 up).
+
 endif

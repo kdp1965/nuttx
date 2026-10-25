@@ -134,6 +134,13 @@ extern "C"
 
 /* Operations on streams (FILE) */
 
+/* What stdin / stdout / stderr expand to; also in nuttx/lib/lib.h, which
+ * an application does not include - a compiler without implicit
+ * declarations (sdcc) needs the prototype here
+ */
+
+FAR FILE *lib_get_stream(int fd);
+
 void   clearerr(FAR FILE *stream);
 void   clearerr_unlocked(FAR FILE *stream);
 int    fclose(FAR FILE *stream);

@@ -210,6 +210,13 @@ struct spi_dev_s;
 FAR struct spi_dev_s *lisa_spibus_initialize(int bus);
 #endif
 
+/* The I2C master (lisa_i2c.c): bus 0, the only one */
+
+#ifdef CONFIG_LISA_I2C
+struct i2c_master_s;
+FAR struct i2c_master_s *lisa_i2cbus_initialize(int bus);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
