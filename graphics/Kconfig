@@ -410,6 +410,13 @@ config NXTERM_LINESEPARATION
 	---help---
 		This the space (in rows) between each row of test.  Default: 0
 
+config NXTERM_NOMARGIN
+	bool "No left margin"
+	default n
+	---help---
+		Lines start at the window's left edge instead of one space width
+		in - on a small display (a 128x64 OLED) that is a column more.
+
 config NXTERM_NOWRAP
 	bool "No wrap"
 	default n

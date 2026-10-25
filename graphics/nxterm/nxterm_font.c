@@ -276,9 +276,15 @@ int nxterm_backspace(FAR struct nxterm_state_s *priv)
 
 void nxterm_home(FAR struct nxterm_state_s *priv)
 {
-  /* The first character is one space from the left */
+  /* The first character is one space from the left (or at the left edge:
+   * CONFIG_NXTERM_NOMARGIN)
+   */
 
+#ifdef CONFIG_NXTERM_NOMARGIN
+  priv->fpos.x = 0;
+#else
   priv->fpos.x = priv->spwidth;
+#endif
 
   /* And CONFIG_NXTERM_LINESEPARATION lines from the top */
 
@@ -297,7 +303,11 @@ void nxterm_newline(FAR struct nxterm_state_s *priv)
 {
   /* Carriage return: The first character is one space from the left */
 
+#ifdef CONFIG_NXTERM_NOMARGIN
+  priv->fpos.x = 0;
+#else
   priv->fpos.x = priv->spwidth;
+#endif
 
   /* Linefeed: Down the max font height + CONFIG_NXTERM_LINESEPARATION */
 
