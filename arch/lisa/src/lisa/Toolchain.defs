@@ -52,6 +52,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 
 export LISA_SDCC = $(SDCC_BINDIR)/sdcc
+export LISA_CPUFLAGS = $(ARCHCPUFLAGS)
 export LISA_BANK_MAP = $(TOPDIR)/boards/$(patsubst "%",%,$(CONFIG_ARCH))/$(patsubst "%",%,$(CONFIG_ARCH_CHIP))/$(patsubst "%",%,$(CONFIG_ARCH_BOARD))/scripts/banks.map
 
 # Custom ASSEMBLE definition: the assembler is run directly (no
@@ -72,7 +73,7 @@ endef
 # Tool names/paths
 
 CC = $(LISA_TOOLS)/lisa-sdcc
-CPP = $(SDCC_BINDIR)/sdcpp
+CPP = $(LISA_TOOLS)/lisa-cpp
 LD = $(SDCC_BINDIR)/sdldlisa
 AS = $(SDCC_BINDIR)/sdaslisa
 AR = $(LISA_TOOLS)/lisa-ar

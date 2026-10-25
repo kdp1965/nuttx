@@ -1,0 +1,35 @@
+#!/bin/sh
+# arch/lisa/src/tools/lisa-cpp - the C preprocessor as sdcc runs it
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# NuttX's PREPROCESS ($(CPP) $(CPPFLAGS) <in> -o <out>: NX generates its
+# per-pixel-depth sources this way) through $LISA_SDCC -E with the CPU
+# flags $LISA_CPUFLAGS, so the preprocessor sees sdcc's own include
+# directory (stdarg.h, ...) and its predefined macros (__SDCC_lisa,
+# __SDCC_LISA_REV3, ...) - sdcpp run directly has neither.  sdcc -E writes
+# to stdout; -o <out> is taken here.
+
+out=
+want_o=
+n=$#
+i=0
+while [ $i -lt $n ]; do
+  a=$1
+  shift
+  i=$((i+1))
+  if [ -n "$want_o" ]; then
+    out=$a
+    want_o=
+    continue
+  fi
+  case "$a" in
+    -o) want_o=1; continue ;;
+  esac
+  set -- "$@" "$a"
+done
+
+if [ -n "$out" ]; then
+  exec "${LISA_SDCC:-sdcc}" $LISA_CPUFLAGS -E "$@" > "$out"
+fi
+exec "${LISA_SDCC:-sdcc}" $LISA_CPUFLAGS -E "$@"
