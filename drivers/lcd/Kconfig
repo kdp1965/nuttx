@@ -373,6 +373,17 @@ config LCD_SSD1306_CUSTOM_DEV_PAGES
 	int "Custom LCD number of pages"
 	default 4
 
+config LCD_SSD1306_CUSTOM_NOREVERSEX
+	bool "Custom LCD: no X reversal in landscape"
+	default n
+	depends on LCD_LANDSCAPE
+	---help---
+		In landscape the driver reverses the columns in software for the
+		custom panel; on a panel whose segment remap (0xA1, which the
+		driver sends) already puts column 0 at the left - an SSD1309
+		128x64 module, for one - that mirrors the picture.  Set this to
+		leave the columns as they are.
+
 config LCD_SSD1306_CUSTOM_DEV_CMNPAD
 	int "Custom LCD COM configuration (cmnpad)"
 	default 2
